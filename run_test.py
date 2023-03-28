@@ -5,11 +5,15 @@ import matplotlib.pyplot as plt
 
 from utils import visualize_graph
 
-# TODO: 改写成一个类，*_pth作为类属性，后续对于不同 partition 方法采取不同的运行方法、分析方法、数据存放位置
-
-
 class partition_runner:
     def __init__(self, hg_pth, par_pth, vis_pth, stats_pth, method):
+        '''
+        hg_pth: 超图文件存储目录
+        par_pth: 切分结果存储目录
+        vis_pth: 切分可视化存储目录
+        stats_pth: 切分运行过程统计数据存储目录
+        method: 'shmetis', 'hmetis', or a self-define function
+        '''
         self.__hg_pth = hg_pth
         self.__par_pth = par_pth
         self.__vis_pth = vis_pth
@@ -41,9 +45,15 @@ class partition_runner:
             for k in k_list:
                 """
                 shmetis HGraphFile [FixFile] Nparts UBfactor
+                hmetis  HGraphFile [FixFile] Nparts UBfactor Nruns CType RType Vcycle Reconst dbglvl
                 """
                 if isinstance(self.__method, str):
-                    status, res = subprocess.getstatusoutput(f"{self.__method} {file} {k} {UBfactor}")
+                    if self.__method=='shmetis':
+                        status, res = subprocess.getstatusoutput(f"shmetis {file} {k} {UBfactor}")
+                    elif self.__method=='hmetis':
+                        status, res = subprocess.getstatusoutput(f"hmetis {file} {k} {UBfactor}")
+                    else:
+                        raise ValueError(f'Error Command: {self.__method}')
                 else:
                     status, res = self.__method(file, k, UBfactor)
                 # status_list.append(status)
