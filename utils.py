@@ -59,10 +59,10 @@ def visualize_graph(gfile, pfile, dst):
     # if is_weight_vec:
     nx.draw_networkx(
         hg,
-        # pos=nx.spring_layout(hg, iterations=150),
-        pos=nx.shell_layout(hg),
+        pos=nx.spring_layout(hg, iterations=50, seed=3407, weight=None),
+        # pos=nx.shell_layout(hg),
         with_labels=True,
-        edge_color="gray",
+        edge_color="grey",
         node_color=v_part,
         cmap=plt.cm.rainbow,
         node_size=[250 + w * 80 for w in vec_weight_list] if is_weight_vec else 300,
