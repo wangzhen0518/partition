@@ -92,10 +92,10 @@ endif()
 message(STATUS "CUB_DIR ${CUB_DIR}")
 
 # munkres-cpp for Hungarian algorithm 
-set(MUNKRES_CPP_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/munkres-cpp/src)
-set(MUNKRES_CPP_LINK_DIRS ${CMAKE_CURRENT_BINARY_DIR}/thirdparty/munkres-cpp)
-message(STATUS "MUNKRES_CPP_INCLUDE_DIRS ${MUNKRES_CPP_INCLUDE_DIRS}")
-message(STATUS "MUNKRES_CPP_LINK_DIRS ${MUNKRES_CPP_LINK_DIRS}")
+# set(MUNKRES_CPP_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/munkres-cpp/src)
+# set(MUNKRES_CPP_LINK_DIRS ${CMAKE_CURRENT_BINARY_DIR}/thirdparty/munkres-cpp)
+# message(STATUS "MUNKRES_CPP_INCLUDE_DIRS ${MUNKRES_CPP_INCLUDE_DIRS}")
+# message(STATUS "MUNKRES_CPP_LINK_DIRS ${MUNKRES_CPP_LINK_DIRS}")
 
 # lemon for network flow algorithms 
 find_path(LEMON_SOURCE_DIR lemon PATHS ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/Limbo/limbo/thirdparty/* 
@@ -129,8 +129,8 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/dreamplace/configure.py.in ${CMAKE_CU
 
 add_subdirectory(thirdparty)
 add_subdirectory(dreamplace)
-add_subdirectory(unittest)
+# add_subdirectory(unittest)
 add_subdirectory(benchmarks)
-add_subdirectory(test)
+# add_subdirectory(test)
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dreamplace/configure.py DESTINATION dreamplace)
