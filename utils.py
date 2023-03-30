@@ -3,6 +3,39 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import os
 
+import dreamplace.PlaceDB as PlaceDB
+import dreamplace.Params as Params
+
+
+def del_ext_name(name: str):
+    name = os.path.basename(name)
+    name = name.split(".")[0]
+    return name
+
+
+def generate_single_hg_file(src, dst):
+    params = Params.Params()
+    placedb = PlaceDB.PlaceDB()
+    params.load(src)
+    placedb(params)
+
+    # 遍历 placedb.net2pin_map, placedb.net_weights
+    edge_list = []
+    del_edge_cnt = 0
+    for e, w in zip(placedb.net2pin_map, placedb.net_weights):
+        e = set([placedb.pin2node_map[p] + 1 for p in e])
+        if len(e) == 1:
+            del_edge_cnt += 1
+            continue
+        # edge_list.append([int(w), *e])
+        edge_list.append([*e])
+    with open(dst, "w", encoding="utf-8") as f:
+        # f.write(f"{placedb.num_nets} {placedb.num_physical_nodes} 1\n")  # 1 为加权边
+        f.write(f"{placedb.num_nets-del_edge_cnt} {placedb.num_physical_nodes}\n")
+        for e in edge_list:
+            f.write(" ".join([str(v) for v in e]) + "\n")
+    return placedb
+
 
 def add_connected_subgraph(hg: nx.Graph, node_list, w=1):
     edge_list = [(s, t, w) for s in node_list for t in node_list if s < t]
@@ -53,6 +86,7 @@ def visualize_graph(gfile, pfile, dst):
     pfile: partition result files
     k: # of partition
     """
+    print(f"{gfile}:\t{pfile}")
     hg, is_weight_vec, vec_weight_list = generate_hg(gfile)
     with open(pfile, encoding="utf-8") as f:
         v_part = [int(p) for p in f]
@@ -61,12 +95,23 @@ def visualize_graph(gfile, pfile, dst):
         hg,
         pos=nx.spring_layout(hg, iterations=50, seed=3407, weight=None),
         # pos=nx.shell_layout(hg),
-        with_labels=True,
+        # with_labels=True,
         edge_color="grey",
         node_color=v_part,
         cmap=plt.cm.rainbow,
-        node_size=[250 + w * 80 for w in vec_weight_list] if is_weight_vec else 300,
+        alpha=0,
+        # node_size=[250 + w * 80 for w in vec_weight_list] if is_weight_vec else 300,
+        node_size=10,
     )
-    plt.savefig(f"{dst}/{os.path.basename(pfile)}.png")
+    nx.draw_networkx_nodes(
+        hg,
+        pos=nx.spring_layout(hg, iterations=50, seed=3407, weight=None),
+        # pos=nx.shell_layout(hg),
+        # with_labels=True,
+        node_color=v_part,
+        cmap=plt.cm.rainbow,
+        node_size=10,
+    )
+    plt.savefig(f"{dst}/{os.path.basename(pfile).replace('.hg','')}.png")
     plt.clf()
     hg.clear()

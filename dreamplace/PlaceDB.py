@@ -13,11 +13,12 @@ import time
 import numpy as np
 import torch
 import logging
-import Params
+# import Params
+import dreamplace.Params as Params
 import dreamplace
 import dreamplace.ops.place_io.place_io as place_io
 import dreamplace.ops.fence_region.fence_region as fence_region
-import pdb
+# import pdb
 
 datatypes = {
         'float32' : np.float32,
