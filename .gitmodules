@@ -1,0 +1,6 @@
+[submodule "thirdparty/pybind11"]
+	path = thirdparty/pybind11
+	url = https://gitee.com/wangzhen0518/pybind11
+[submodule "thirdparty/Limbo"]
+	path = thirdparty/Limbo
+	url = https://gitee.com/wangzhen0518/Limbo.git
