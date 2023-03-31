@@ -91,27 +91,30 @@ def visualize_graph(gfile, pfile, dst):
     with open(pfile, encoding="utf-8") as f:
         v_part = [int(p) for p in f]
     # if is_weight_vec:
-    nx.draw_networkx(
-        hg,
-        pos=nx.spring_layout(hg, iterations=50, seed=3407, weight=None),
-        # pos=nx.shell_layout(hg),
-        # with_labels=True,
-        edge_color="grey",
-        node_color=v_part,
-        cmap=plt.cm.rainbow,
-        alpha=0,
-        # node_size=[250 + w * 80 for w in vec_weight_list] if is_weight_vec else 300,
-        node_size=10,
-    )
+    # nx.draw_networkx(
+    #     hg,
+    #     pos=nx.spring_layout(hg, iterations=50, seed=3407, weight=None),
+    #     # pos=nx.shell_layout(hg),
+    #     # with_labels=True,
+    #     edge_color="grey",
+    #     node_color=v_part,
+    #     cmap=plt.cm.rainbow,
+    #     alpha=0,
+    #     # node_size=[250 + w * 80 for w in vec_weight_list] if is_weight_vec else 300,
+    #     node_size=10,
+    # )
+    _pos = nx.spring_layout(hg, iterations=10, seed=3407, weight=None)
+    # _pos = nx.shell_layout(hg)
+    plt.figure(dpi=300)
     nx.draw_networkx_nodes(
         hg,
-        pos=nx.spring_layout(hg, iterations=50, seed=3407, weight=None),
+        pos=_pos,
         # pos=nx.shell_layout(hg),
         # with_labels=True,
         node_color=v_part,
         cmap=plt.cm.rainbow,
-        node_size=10,
+        node_size=1,
     )
-    plt.savefig(f"{dst}/{os.path.basename(pfile).replace('.hg','')}.png")
+    plt.savefig(f"{dst}/{os.path.basename(pfile).replace('.hg','')}.png", dpi=300)
     plt.clf()
     hg.clear()
