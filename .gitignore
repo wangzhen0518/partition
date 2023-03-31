@@ -13,6 +13,7 @@ configure*
 __pycache__/
 build/
 lib/
+res/
 results/
 log/
 install/
