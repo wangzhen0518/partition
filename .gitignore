@@ -5,7 +5,7 @@ dreamplace.egg-info
 *.a
 *.pyc
 *obj*
-*dist*
+# *dist*
 *.so
 configure*
 test.*
