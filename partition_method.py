@@ -65,13 +65,13 @@ class default_method(ABC):
     def set_config(self, benchmark, is_vis):
         self.is_vis = is_vis
         self.benchmark = benchmark
-        self.set_logger()
         self.stats_dict = mp.Manager().dict()
         self.hg_pth = os.path.join("benchmark", benchmark, "hypergraph")
         self.par_pth = os.path.join("res", benchmark, self.__name__, "par")
         self.vis_pth = os.path.join("res", benchmark, self.__name__, "vis")
         self.stats_pth = os.path.join("res", benchmark, self.__name__, "stats")
         subprocess.getstatusoutput(f"mkdir -p {self.par_pth} {self.vis_pth} {self.stats_pth}")
+        self.set_logger()
         self.load_config()
 
     def load_config(self):
