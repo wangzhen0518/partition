@@ -1,7 +1,8 @@
 import glob
 import networkx as nx
 import matplotlib.pyplot as plt
-import os
+import os,sys
+import logging
 
 import dreamplace.PlaceDB as PlaceDB
 import dreamplace.Params as Params
@@ -118,3 +119,12 @@ def visualize_graph(gfile, pfile, dst):
     plt.savefig(f"{dst}/{os.path.basename(pfile).replace('.hg','')}.png", dpi=300)
     plt.clf()
     hg.clear()
+
+
+def check_hg_file(file_name):
+    with open(file_name, "r", encoding="utf-8") as f:
+        f.readline()  # 跳过第一行
+        for i, l in enumerate(f):
+            v_list = [int(v) for v in l.split()]
+            if len(v_list) <= 1:
+                print(f"Error: line {i+2}")

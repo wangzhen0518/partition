@@ -2,24 +2,74 @@ import os
 import glob
 import subprocess
 import matplotlib.pyplot as plt
+import json
+
+from multiprocessing import Pool
+
 
 from utils import visualize_graph, del_ext_name
+from partition_method import task, default_method
+
+
+class config_info:
+    def __init__(self, benchmark, is_vis, method: default_method):
+        """
+        根据benchmark, 从test/${benchmark_name}/config.json读出运行该benchmark的配置
+        如果没有test/${benchmark_name}/config.json文件，则读取test/default_config.json，使用默认配置
+
+        config_dict: dict(
+            'hg_pth': ..., # 超图文件路径
+            'par_pth': ..., # 切分文件存储路径
+            'vis_pth': ..., # 可视化结果存储路径
+            'stats_pth': ..., # 切分
+            'k': [...],
+            'UBfactor': [...],
+            other args ...,
+        )
+        """
+
+        self.task_list = method.get_task_list()
+
+        config_file = os.path.join("test", benchmark, "config.json")
+        if os.path.exists(config_file):
+            with open(config_file, encoding="utf-8") as f:
+                self.config_dict = json.loads(f)
+        else:
+            config_file = os.path.join("test", "default_config.json")
+            with open(config_file, encoding="utf-8") as f:
+                self.config_dict = json.loads(f)
+        # add *_pth configs
+        if isinstance(method, str):
+            method_name = method
+        else:  # method is a function or class
+            method_name = method.__name__
+        self.config_dict["hg_pth"] = os.path.join("benchmark", benchmark, "hypergraph")
+        self.config_dict["par_pth"] = os.path.join("res", benchmark, method_name, "par")
+        self.config_dict["vis_pth"] = os.path.join("res", benchmark, method_name, "vis")
+        self.config_dict["stats_pth"] = os.path.join("res", benchmark, method_name, "stats")
+        self.method = method
+        self.is_vis = is_vis
 
 
 class partition_runner:
-    def __init__(self, hg_pth, par_pth, vis_pth, stats_pth, method):
+    def __init__(self, method: default_method, n=4):
         """
-        hg_pth: 超图文件存储目录
-        par_pth: 切分结果存储目录
-        vis_pth: 切分可视化存储目录
-        stats_pth: 切分运行过程统计数据存储目录
-        method: 'shmetis', 'hmetis', or a self-define function
+        benchmark
+        method: a class
+        is_vis: 是否进行可视化绘图
+        n: 多进程数
         """
-        self.__hg_pth = hg_pth
-        self.__par_pth = par_pth
-        self.__vis_pth = vis_pth
-        self.__stats_pth = stats_pth
-        self.__method = method
+        self.n = n
+        self.task_list = method.get_task_list()
+
+        # self.hg_list = self.__get_hg_file()
+
+    def run(self):
+        pool = Pool(self.n)
+        for t in self.task_list:
+            pool.apply_async(t.run)
+        pool.close()
+        pool.join()
 
     def __get_hg_file(self):
         # return [
@@ -27,7 +77,7 @@ class partition_runner:
         #     f"{self.__hg_pth}/adaptec4.hg",
         #     f"{self.__hg_pth}/bigblue2.hg",
         # ]
-        return glob.glob(f"{self.__hg_pth}/*.hg")
+        return glob.glob(f"{self.hg_pth}/*.hg")
 
     def __get_par_file(self, hg_src):
         """
@@ -71,7 +121,7 @@ class partition_runner:
 
     def __move_par_results(self):
         status, res = subprocess.getstatusoutput(
-            f'mv {self.__hg_pth}/*.part.* {self.__par_pth}/; rename "s/.hg//" {self.__par_pth}/*'
+            f'mv {self.hg_pth}/*.part.* {self.__par_pth}/; rename "s/.hg//" {self.__par_pth}/*'
         )
         return status, res
 
@@ -83,7 +133,7 @@ class partition_runner:
                 visualize_graph(gfile, pfile, self.__vis_pth)
 
     def set_hg_pth(self, hg_pth):
-        self.__hg_pth = hg_pth
+        self.hg_pth = hg_pth
 
     def set_par_pth(self, par_pth):
         self.__par_pth = par_pth
@@ -96,9 +146,3 @@ class partition_runner:
 
     def set_method(self, method):
         self.__method = method
-
-    def run(self):
-        subprocess.getstatusoutput(f"mkdir -p {self.__par_pth} {self.__vis_pth} {self.__stats_pth}")
-        # self.__partition()
-        # self.__move_par_results()
-        self.__visual_results()

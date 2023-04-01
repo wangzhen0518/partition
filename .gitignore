@@ -8,6 +8,7 @@ dreamplace.egg-info
 *dist*
 *.so
 configure*
+test.*
 
 .vscode/
 __pycache__/

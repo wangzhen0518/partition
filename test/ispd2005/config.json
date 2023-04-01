@@ -1,0 +1,7 @@
+{
+  // "hg_pth": "benchmarks/ispd2005/hypergraph",
+  // "par_pth": "res/ispd2005/par",
+  // "vis_pth": "res/ispd2005/vis",
+  // "stats_pth": "res/ispd2005/stats",
+  "default": { "k": [2, 1024], "UBfactor": [2] }
+}

@@ -35,8 +35,6 @@ def place(params):
     placedb = PlaceDB.PlaceDB()
     placedb(params)
     logging.info("reading database takes %.2f seconds" % (time.time() - tt))
-    
-    #TODO 使用placedb生成图
 
 
 if __name__ == "__main__":
