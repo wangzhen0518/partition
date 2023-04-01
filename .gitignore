@@ -17,7 +17,7 @@ lib/
 res/
 log/
 install/
-benchmark/
+# benchmarks/
 # thirdparty/
 
 .DS_Store
