@@ -4,3 +4,4 @@
 [submodule "thirdparty/Limbo"]
 	path = thirdparty/Limbo
 	url = https://gitee.com/wangzhen0518/Limbo.git
+	branch = develop

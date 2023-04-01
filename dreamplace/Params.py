@@ -63,10 +63,10 @@ class Params:
         description_length_map = []
 
         def getDefaultColumn(key, value):
-            if sys.version_info.major < 3: # python 2
-                flag = isinstance(value['default'], unicode)
-            else: #python 3
-                flag = isinstance(value['default'], str)
+            # if sys.version_info.major < 3: # python 2
+            #     flag = isinstance(value['default'], unicode)
+            # else: #python 3
+            flag = isinstance(value['default'], str)
             if flag and not value['default'] and 'required' in value: 
                 return value['required']
             else:

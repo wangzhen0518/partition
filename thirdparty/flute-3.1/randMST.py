@@ -43,6 +43,6 @@ for i in range(0, n):
     entry = "%.3f %.3f" % (HPWL, mstWL)
     for j in range(0, npin):
         entry += " %.3f %.3f" % (x[j], y[j])
-    print entry
+    print(entry)
     
     #exit()
