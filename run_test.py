@@ -23,6 +23,8 @@ def generate_hg_file(src_dir, dst_dir):
 
 
 if __name__ == "__main__":
-    # generate_hg_file(config_pth, hg_pth)
+    config_pth='./test/ispd2005'
+    hg_pth='./benchmarks/ispd2005/hypergraph'
+    generate_hg_file(config_pth, hg_pth)
     shmetis = shmetis_method("ispd2005", False)
     shmetis.run_all(8)

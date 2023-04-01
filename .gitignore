@@ -7,7 +7,7 @@ dreamplace.egg-info
 *obj*
 # *dist*
 *.so
-configure*
+configure.*
 test.*
 
 .vscode/
