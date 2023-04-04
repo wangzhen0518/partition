@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 from multiprocessing import Pool
 from datetime import datetime
 
-from utils import del_ext_name
+from utils import del_ext_name, plot_pl_with_par
 
 
 class default_method(ABC):
@@ -26,6 +26,7 @@ class default_method(ABC):
         self.benchmark = None
         self.stats_dict = None
         self.hg_pth = None
+        self.pl_pth = None
         self.par_pth = None
         self.vis_pth = None
         self.stats_pth = None
@@ -37,7 +38,9 @@ class default_method(ABC):
         return cls.__name__
 
     def get_hg_files(self):
-        return glob.glob(os.path.join(self.hg_pth, "*.hg"))
+        hg_file_list = glob.glob(os.path.join(self.hg_pth, "*.hg"))
+        hg_file_list.sort()
+        return hg_file_list
 
     def set_logger(self):
         self.logger = logging.getLogger(self.__name__)
@@ -67,6 +70,7 @@ class default_method(ABC):
         self.benchmark = benchmark
         self.stats_dict = mp.Manager().dict()
         self.hg_pth = os.path.join("benchmarks", benchmark, "hypergraph")
+        self.pl_pth = os.path.join("benchmarks", benchmark, "pl")
         self.par_pth = os.path.join("res", benchmark, self.__name__, "par")
         self.vis_pth = os.path.join("res", benchmark, self.__name__, "vis")
         self.stats_pth = os.path.join("res", benchmark, self.__name__, "stats")
@@ -140,12 +144,14 @@ class shmetis_method(default_method):
 
     def run(self, *args):
         # TODO 将 *.hg 文件的生成过程也加到这里，需要修改 self.get_hg_files()
-        self.logger.info(args)
+        msg = " ".join([str(s) for s in args])
+        self.logger.info(msg + " start")
         hg_file, k, ubf = args
         state, res = subprocess.getstatusoutput(f"shmetis {hg_file} {k} {ubf}")
 
         # 移动 partition 结果文件
-        res_name = del_ext_name(hg_file) + f".{k}.{ubf}"
+        test_name = del_ext_name(hg_file)
+        res_name = test_name + f".{k}.{ubf}"
         par_ori_file = hg_file + f".part.{k}"
         par_file = os.path.join(self.par_pth, res_name)
         subprocess.getstatusoutput(f"mv {par_ori_file} {par_file}")
@@ -156,13 +162,17 @@ class shmetis_method(default_method):
             self.analysis_stats(res, stats_file)
 
             if self.is_vis:
+                pl_file = os.path.join(self.pl_pth, test_name + ".gp.pl")
                 vis_file = os.path.join(self.vis_pth, res_name + ".png")
-                _pos = ...  # TODO 读取 DreamPlace 的 Placement 结果的坐标
-                with open(par_file, encoding="utf-8") as f:
-                    v_part = [int(p) for p in f]
-                plt.figure(dpi=300)
-                ...  # TODO 看如何调色
-                plt.savefig(vis_file, dpi=300)
+                plot_pl_with_par(pl_file, par_file, vis_file)
+                # _pos = ...  # TODO 读取 DreamPlace 的 Placement 结果的坐标
+                # with open(par_file, encoding="utf-8") as f:
+                #     v_part = [int(p) for p in f]
+                # plt.figure(dpi=300)
+                # ...  # TODO 看如何调色
+                # plt.savefig(vis_file, dpi=300)
+
+        self.logger.info(msg + " end")
 
     def conclude(self):
         conclude_file = os.path.join(self.stats_pth, "conclude.json")

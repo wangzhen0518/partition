@@ -1,7 +1,7 @@
 import glob
 import networkx as nx
 import matplotlib.pyplot as plt
-import os,sys
+import os, sys
 import logging
 
 import dreamplace.PlaceDB as PlaceDB
@@ -24,12 +24,13 @@ def generate_single_hg_file(src, dst):
     edge_list = []
     del_edge_cnt = 0
     for e, w in zip(placedb.net2pin_map, placedb.net_weights):
-        e = set([placedb.pin2node_map[p] + 1 for p in e])
+        e = list(set([placedb.pin2node_map[p] + 1 for p in e]))
         if len(e) == 1:
             del_edge_cnt += 1
             continue
         # edge_list.append([int(w), *e])
-        edge_list.append([*e])
+        e.sort()
+        edge_list.append(e)
     with open(dst, "w", encoding="utf-8") as f:
         # f.write(f"{placedb.num_nets} {placedb.num_physical_nodes} 1\n")  # 1 为加权边
         f.write(f"{placedb.num_nets-del_edge_cnt} {placedb.num_physical_nodes}\n")
@@ -77,6 +78,26 @@ def generate_hg(gfile):
     return hg, is_weight_vec, vec_weight_list
 
 
+def load_position(pl_file):
+    pos_x, pos_y = [], []
+    with open(pl_file, encoding="utf-8") as f:
+        # 跳过前两行
+        f.readline()
+        f.readline()
+        for node in f:
+            node_x, node_y = node.split()[1:3]
+            node_x, node_y = int(node_x), int(node_y)
+            pos_x.append(node_x)
+            pos_y.append(node_y)
+    return pos_x, pos_y
+
+
+def load_par(par_file):
+    with open(par_file, encoding="utf-8") as f:
+        v_part = [int(p) for p in f]
+    return v_part
+
+
 def visualize_graph(gfile, pfile, dst):
     """
     分两步
@@ -89,8 +110,7 @@ def visualize_graph(gfile, pfile, dst):
     """
     print(f"{gfile}:\t{pfile}")
     hg, is_weight_vec, vec_weight_list = generate_hg(gfile)
-    with open(pfile, encoding="utf-8") as f:
-        v_part = [int(p) for p in f]
+    v_part = load_par(pfile)
     # if is_weight_vec:
     # nx.draw_networkx(
     #     hg,
@@ -119,6 +139,21 @@ def visualize_graph(gfile, pfile, dst):
     plt.savefig(f"{dst}/{os.path.basename(pfile).replace('.hg','')}.png", dpi=300)
     plt.clf()
     hg.clear()
+
+
+def plot_pl_with_par(pl_file, par_file, vis_file):
+    pos_x, pos_y = load_position(pl_file)
+    v_part = load_par(par_file)
+    fig, ax = plt.subplots(dpi=1000)
+    ax.scatter(
+        pos_x,
+        pos_y,
+        s=0.5,
+        c=v_part,
+        edgecolors="none",
+        cmap=plt.cm.jet,
+    )
+    fig.savefig(vis_file, dpi=1000)
 
 
 def check_hg_file(file_name):
