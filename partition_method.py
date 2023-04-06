@@ -69,8 +69,8 @@ class default_method(ABC):
         self.is_vis = is_vis
         self.benchmark = benchmark
         self.stats_dict = mp.Manager().dict()
-        self.hg_pth = os.path.join("benchmarks", benchmark, "hypergraph")
-        self.pl_pth = os.path.join("benchmarks", benchmark, "pl")
+        self.hg_pth = os.path.join("res", benchmark, "hypergraph")
+        self.pl_pth = os.path.join("res", benchmark, "pl")
         self.par_pth = os.path.join("res", benchmark, self.__name__, "par")
         self.vis_pth = os.path.join("res", benchmark, self.__name__, "vis")
         self.stats_pth = os.path.join("res", benchmark, self.__name__, "stats")
@@ -165,12 +165,6 @@ class shmetis_method(default_method):
                 pl_file = os.path.join(self.pl_pth, test_name + ".gp.pl")
                 vis_file = os.path.join(self.vis_pth, res_name + ".png")
                 plot_pl_with_par(pl_file, par_file, vis_file)
-                # _pos = ...  # TODO 读取 DreamPlace 的 Placement 结果的坐标
-                # with open(par_file, encoding="utf-8") as f:
-                #     v_part = [int(p) for p in f]
-                # plt.figure(dpi=300)
-                # ...  # TODO 看如何调色
-                # plt.savefig(vis_file, dpi=300)
 
         self.logger.info(msg + " end")
 

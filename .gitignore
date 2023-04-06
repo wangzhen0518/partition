@@ -9,6 +9,7 @@ dreamplace.egg-info
 *.so
 configure.*
 test.*
+*.svg
 
 .vscode/
 __pycache__/

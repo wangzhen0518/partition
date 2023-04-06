@@ -1,5 +1,5 @@
 import glob
-import os,sys
+import os, sys
 import subprocess
 import logging
 
@@ -14,7 +14,7 @@ def generate_hg_file(benchmark):
     循环使用placedb读取并处理输入文件
     """
     config_pth = os.path.join("test", benchmark)
-    hg_pth = os.path.join("benchmarks", benchmark, "hypergraph")
+    hg_pth = os.path.join("res", benchmark, "hypergraph")
     subprocess.getstatusoutput(f"mkdir -p {hg_pth}")
     file_list = glob.glob(os.path.join(config_pth, "*.json"))
     file_list.sort()
@@ -31,10 +31,10 @@ def generate_hg_file(benchmark):
 
 
 if __name__ == "__main__":
-    if len(sys.argv)>=2:
-        benchmark=sys.argv[1]
+    if len(sys.argv) >= 2:
+        benchmark = sys.argv[1]
     else:
         benchmark = "ispd2005"
     # generate_hg_file(benchmark)
-    shmetis = shmetis_method(benchmark, False)
+    shmetis = shmetis_method(benchmark, True)
     shmetis.run_all(16)

@@ -28,12 +28,11 @@ def generate_single_hg_file(src, dst):
         if len(e) == 1:
             del_edge_cnt += 1
             continue
-        # edge_list.append([int(w), *e])
         e.sort()
-        edge_list.append(e)
+        edge_list.append([int(w), *e])
     with open(dst, "w", encoding="utf-8") as f:
         # f.write(f"{placedb.num_nets} {placedb.num_physical_nodes} 1\n")  # 1 为加权边
-        f.write(f"{placedb.num_nets-del_edge_cnt} {placedb.num_physical_nodes}\n")
+        f.write(f"{placedb.num_nets-del_edge_cnt} {placedb.num_physical_nodes} 1\n")
         for e in edge_list:
             f.write(" ".join([str(v) for v in e]) + "\n")
     return placedb
@@ -163,3 +162,37 @@ def check_hg_file(file_name):
             v_list = [int(v) for v in l.split()]
             if len(v_list) <= 1:
                 print(f"Error: line {i+2}")
+
+
+def dict_append(d: dict, k, v):
+    """
+    d 的 value 是 list, 向该 list 中添加元素 v
+    """
+    if k not in d:
+        d[k] = []
+    d[k].append(v)
+
+
+def generate_benchmark_dict(benchmark, method):
+    """
+    bench_dict={
+        design:{
+            'hg': hg_file,
+            'pl': pl_file,
+            'par': par_list,
+            'stats': stats_list,
+            'vis': vis_list | None
+        }
+    }
+    """
+    bench_dict = dict()
+    hg_list = glob.glob(os.path.join("res", benchmark, "hypergraph", "*.hg"))
+    pl_list = glob.glob(os.path.join("res", benchmark, "pl", "*.pl"))
+    hg_list.sort()
+    pl_list.sort()
+    design_list = [del_ext_name(hg_file) for hg_file in hg_list]
+    for design, hg_file, pl_file in zip(design_list, hg_list, pl_list):
+        par_list = glob.glob(os.path.join("res", benchmark, method, "par", design + "*"))
+        par_list.sort()
+        bench_dict[design] = {"hg": hg_file, "pl": pl_file, "par": par_list}
+    return bench_dict
