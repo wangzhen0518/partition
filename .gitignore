@@ -10,6 +10,7 @@ dreamplace.egg-info
 configure.*
 test.*
 *.svg
+*.png
 
 .vscode/
 __pycache__/

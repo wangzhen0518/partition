@@ -3,7 +3,8 @@ import os, sys
 import subprocess
 import logging
 
-from utils import generate_single_hg_file, del_ext_name
+from hypergraph import generate_single_hg_file
+from utils import del_ext_name
 
 # from runner import partition_runner
 from partition_method import default_method, shmetis_method
@@ -18,12 +19,10 @@ def generate_hg_file(benchmark):
     subprocess.getstatusoutput(f"mkdir -p {hg_pth}")
     file_list = glob.glob(os.path.join(config_pth, "*.json"))
     file_list.sort()
-    try:
-        file_list.remove("config.json")
-    except ValueError:
-        pass
     # file_list = [f"{src_dir}/adaptec3.json", f"{src_dir}/adaptec4.json", f"{src_dir}/bigblue2.json"]
     for file in file_list:
+        if "config.json" in file:
+            continue
         try:
             generate_single_hg_file(file, os.path.join(hg_pth, del_ext_name(file) + ".hg"))
         except Exception as e:
@@ -37,4 +36,4 @@ if __name__ == "__main__":
         benchmark = "ispd2005"
     # generate_hg_file(benchmark)
     shmetis = shmetis_method(benchmark, True)
-    shmetis.run_all(16)
+    shmetis.run_all(4)

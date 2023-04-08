@@ -3,5 +3,5 @@
   // "par_pth": "res/ispd2005/par",
   // "vis_pth": "res/ispd2005/vis",
   // "stats_pth": "res/ispd2005/stats",
-  "default": { "k": [2, 5, 50, 200, 500, 1024], "UBfactor": [2] }
+  "default": { "k": [2, 50, 500, 1024], "UBfactor": [2] }
 }

@@ -21,36 +21,8 @@ partition的数据结构为
 n: 第k个类中点的数量
 """
 
-
-def eval(par: dict):
-    # TODO 改成 tensor 版本，加速
-    # 先将partition转换成numpy.array
-    # val = 1/N sum_k sum_i [(xi-x_bar)^2 + (yi-y_bar)^2]
-    N = 0
-    val = 0
-    val_list = []
-    for k, (n, _id, x, y) in par.items():
-        N += n
-        val_tmp = x.var() + y.var()
-        val += val_tmp * n
-        # val += val_tmp
-        val_list.append(val_tmp)
-    # val /= len(par)
-    val /= N
-    return val, val_list
-
-
-def num_par(par: dict):
-    """
-    看各个切分的数量是否均衡
-    """
-    num = [n for n, _, _, _ in par.values()]
-    var = np.var(num)
-    # print(var)
-    print(num)
-
-
 def generate_par(par_file, pl_file):
+    print(par_file, pl_file)
     par = load_par(par_file)
     pos_x, pos_y = load_position(pl_file)
     pos_x, pos_y = np.array(pos_x), np.array(pos_y)
@@ -68,6 +40,35 @@ def generate_par(par_file, pl_file):
         nk = len(id_list)
         par_dict[k] = [nk, id_list, x, y]
     return par_dict
+
+def eval(par: dict):
+    # TODO 改成 tensor 版本，加速
+    # 先将partition转换成numpy.array
+    # val = 1/N sum_k sum_i [(xi-x_bar)^2 + (yi-y_bar)^2]
+    N = 0
+    val = 0
+    val_list = []
+    for k, (n, _id, x, y) in par.items():
+        N += n
+        val_tmp = x.var() + y.var()
+        # val += val_tmp * n
+        val += val_tmp
+        val_list.append(val_tmp)
+    val /= len(par)
+    # val /= N
+    return val, val_list
+
+
+def num_par(par: dict):
+    """
+    看各个切分的数量是否均衡
+    """
+    num = [n for n, _, _, _ in par.values()]
+    var = np.var(num)
+    # print(var)
+    print(num)
+
+
 
 
 if __name__ == "__main__":

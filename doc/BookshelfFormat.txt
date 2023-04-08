@@ -1,0 +1,89 @@
+GSRC Bookshelf Format for placement instances
+
+Courtesy of Gi-Joon Nam of IBM
+with some small edits by Jarrod Roy.
+
+For more information, please contact Igor Markov (imarkov@eecs.umich.edu)
+and Jarrod Roy (royj@eecs.umich.edu).
+
+Assuming the benchmark name is zzz,
+(1) zzz.aux : denotes the set of input files. Usually looks like
+        RowBasedPlacement : zzz.nodes zzz.nets zzz.wts zzz.pl zzz.scl
+
+(2) zzz.nodes: specifies the set of objects. For each object,
+
+        object_name        width         height        terminal
+
+     # keyword "terminal" appears only for fixed objects.
+
+(3) zzz.nets: specifies the set of nets. For each net,
+
+        NetDegree : k net_name
+     # input pin  pin offset is measured from the center of corresponding object
+     #            if pin offsets are unavailable, assumed to be (0,0)
+                object_name        I : x_offset        y_offset          
+     # output pin
+                object_name        O : x_offset        y_offset          
+       
+(4) zzz.pl: specifies the location & orientation of objects. For each object,
+
+     # x_location & y_location are bottom left coordinates of an object
+     # orientation is one of N, S, E, W, FN, FS, FE, FW
+     # and interpreted as in LEF/DEF (see Orientation.ppt in this
+     # documentation for visual representations of each orientation)
+        object_name        x_location        y_location        : orientation
+     # fixed object
+        object_name        x_location        y_location        : orientation    /FIXED
+
+(5) zzz.scl: circuit row information. For each row,
+        CoreRow Horizontal
+           Coordinate :    www  # row starts at coordinate www
+                                # (y-coordinate if horizontal, x-coordinate if vertical row)
+           Height :        yyy  # row height is yyy
+           Sitewidth :     1    
+           Sitespacing :   1    # distance between the left edges of two adjacent sites
+           Siteorient :    1
+           Sitesymmetry :  1
+       # You can specify subrows within a row. They following says the subrow spans from
+       # aaa to (aaa + (bbb-1)*Sitespacing + Sitewidth) with yyy height.
+           SubrowOrigin :  aaa  NumSites : bbb
+       # Additional Subrows may be specified if there are breaks in the row
+       # due to obstacles, but are not required. One subrow is always required.
+
+(6) zzz.wts: specifies weights for objects and nets.
+
+        object_name        weight
+
+-------------------------------------------------------------------------------
+
+Standard benchmarks in the GSRC Bookshelf format can be found
+at the following locations:
+
+IBMv1
+
+   http://er.cs.ucla.edu/benchmarks/ibm-place/
+
+IBMv2
+
+   http://er.cs.ucla.edu/benchmarks/ibm-place2/
+
+ISPD02 Mixed-size Placement Benchmarks
+
+   http://vlsicad.eecs.umich.edu/BK/ISPD02bench/
+
+ICCAD04 Mixed-size Placement Benchmarks
+
+   http://vlsicad.eecs.umich.edu/BK/ICCAD04bench/
+
+ISPD05 Contest Benchmarks
+
+   http://www.ispd.cc/contest.htm
+
+-------------------------------------------------------------------------------
+
+Utilities that work with the GSRC Bookshelf format can be found at:
+
+   http://vlsicad.eecs.umich.edu/BK/PlaceUtils/
+
+Utilities include plotters, wirelength evaluators, converters
+to/from LEFDEF and BLIF, an automatic layout generator, etc.

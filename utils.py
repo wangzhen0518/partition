@@ -1,8 +1,8 @@
 import glob
 import networkx as nx
 import matplotlib.pyplot as plt
-import os, sys
-import logging
+import numpy as np
+import os
 
 import dreamplace.PlaceDB as PlaceDB
 import dreamplace.Params as Params
@@ -12,30 +12,6 @@ def del_ext_name(name: str):
     name = os.path.basename(name)
     name = name.split(".")[0]
     return name
-
-
-def generate_single_hg_file(src, dst):
-    params = Params.Params()
-    placedb = PlaceDB.PlaceDB()
-    params.load(src)
-    placedb(params)
-
-    # 遍历 placedb.net2pin_map, placedb.net_weights
-    edge_list = []
-    del_edge_cnt = 0
-    for e, w in zip(placedb.net2pin_map, placedb.net_weights):
-        e = list(set([placedb.pin2node_map[p] + 1 for p in e]))
-        if len(e) == 1:
-            del_edge_cnt += 1
-            continue
-        e.sort()
-        edge_list.append([int(w), *e])
-    with open(dst, "w", encoding="utf-8") as f:
-        # f.write(f"{placedb.num_nets} {placedb.num_physical_nodes} 1\n")  # 1 为加权边
-        f.write(f"{placedb.num_nets-del_edge_cnt} {placedb.num_physical_nodes} 1\n")
-        for e in edge_list:
-            f.write(" ".join([str(v) for v in e]) + "\n")
-    return placedb
 
 
 def add_connected_subgraph(hg: nx.Graph, node_list, w=1):

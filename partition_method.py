@@ -12,6 +12,7 @@ from multiprocessing import Pool
 from datetime import datetime
 
 from utils import del_ext_name, plot_pl_with_par
+from manager import generate_par, eval
 
 
 class default_method(ABC):
@@ -40,6 +41,7 @@ class default_method(ABC):
     def get_hg_files(self):
         hg_file_list = glob.glob(os.path.join(self.hg_pth, "*.hg"))
         hg_file_list.sort()
+        return ["res/ispd2005/hypergraph/adaptec1.hg.vir"]
         return hg_file_list
 
     def set_logger(self):
@@ -71,9 +73,12 @@ class default_method(ABC):
         self.stats_dict = mp.Manager().dict()
         self.hg_pth = os.path.join("res", benchmark, "hypergraph")
         self.pl_pth = os.path.join("res", benchmark, "pl")
-        self.par_pth = os.path.join("res", benchmark, self.__name__, "par")
-        self.vis_pth = os.path.join("res", benchmark, self.__name__, "vis")
-        self.stats_pth = os.path.join("res", benchmark, self.__name__, "stats")
+        self.par_pth = os.path.join("res", benchmark, self.__name__ + "_ori", "par")
+        self.vis_pth = os.path.join("res", benchmark, self.__name__ + "_ori", "vis")
+        self.stats_pth = os.path.join("res", benchmark, self.__name__ + "_ori", "stats")
+        # self.par_pth = os.path.join("res", benchmark, self.__name__, "par")
+        # self.vis_pth = os.path.join("res", benchmark, self.__name__, "vis")
+        # self.stats_pth = os.path.join("res", benchmark, self.__name__, "stats")
         subprocess.getstatusoutput(f"mkdir -p {self.par_pth} {self.vis_pth} {self.stats_pth}")
         self.set_logger()
         self.load_config()
@@ -119,7 +124,6 @@ class default_method(ABC):
 
 class shmetis_method(default_method):
     def __init__(self, benchmark, is_vis=False):
-
         super(shmetis_method, self).__init__(benchmark, is_vis)
         """
         config_dict: dict(
@@ -131,41 +135,56 @@ class shmetis_method(default_method):
         for hg_file in self.get_hg_files():
             for k in self.config_dict["k"]:
                 for ubf in self.config_dict["UBfactor"]:
-                    yield (hg_file, k, ubf)
+                    yield [hg_file, k, ubf]
 
-    def analysis_stats(self, res: str, stats_file: str):
+    def partition(self, *args):
+        hg_file, k, ubf = args
+        state, res = subprocess.getstatusoutput(f"shmetis {hg_file} {k} {ubf}")
+        return state, res
+
+    def analysis_stats(self, res: str):
         res = res.split("\n")[-3:-1]
-        par_time = float(res[0].split(":")[-1].replace("sec", ""))
+        run_time = float(res[0].split(":")[-1].replace("sec", ""))
         io_time = float(res[1].split(":")[-1].replace("sec", ""))
-        stats_key = os.path.basename(stats_file)
-        self.stats_dict[stats_key] = (par_time, io_time)
-        with open(stats_file, "w", encoding="utf-8") as f:
-            f.write(f"{par_time} {io_time}\n")
+        return run_time, io_time
+
+    def post_processing(self, args):
+        hg_file, k, ubf, res = args
+        design = del_ext_name(hg_file)
+
+        # 移动 partition 结果文件
+        res_name = design + f".{k}.{ubf}"
+        par_ori_file = hg_file + f".part.{k}"
+        par_file = os.path.join(self.par_pth, res_name)
+        subprocess.getstatusoutput(f"mv {par_ori_file} {par_file}")
+
+        # 分析运行时间
+        run_time, io_time = self.analysis_stats(res)
+
+        # 评价切分好坏
+        pl_file = os.path.join(self.pl_pth, design + ".gp.pl")
+        par_dict = generate_par(par_file, pl_file)
+        val, _ = eval(par_dict)
+
+        # 记录分析结果
+        self.stats_dict[res_name] = {"io": io_time, "run": run_time, "value": val}
+        res_file = os.path.join(self.stats_pth, res_name)
+        with open(res_file, "w", encoding="utf-8") as f:
+            f.write(f"{run_time:.4f} {io_time:.4f} {val:.4f}\n")
+
+        if self.is_vis:
+            vis_file = os.path.join(self.vis_pth, res_name + ".png")
+            plot_pl_with_par(pl_file, par_file, vis_file)
 
     def run(self, *args):
         # TODO 将 *.hg 文件的生成过程也加到这里，需要修改 self.get_hg_files()
         msg = " ".join([str(s) for s in args])
         self.logger.info(msg + " start")
-        hg_file, k, ubf = args
-        state, res = subprocess.getstatusoutput(f"shmetis {hg_file} {k} {ubf}")
-
-        # 移动 partition 结果文件
-        test_name = del_ext_name(hg_file)
-        res_name = test_name + f".{k}.{ubf}"
-        par_ori_file = hg_file + f".part.{k}"
-        par_file = os.path.join(self.par_pth, res_name)
-        subprocess.getstatusoutput(f"mv {par_ori_file} {par_file}")
-
+        # state,res=self.partition(args)
+        state, res = 0, ""
         if state == 0:
-            # 分析运行时间
-            stats_file = os.path.join(self.stats_pth, res_name)
-            self.analysis_stats(res, stats_file)
-
-            if self.is_vis:
-                pl_file = os.path.join(self.pl_pth, test_name + ".gp.pl")
-                vis_file = os.path.join(self.vis_pth, res_name + ".png")
-                plot_pl_with_par(pl_file, par_file, vis_file)
-
+            args = list(args).append(res)
+            self.post_processing(args)
         self.logger.info(msg + " end")
 
     def conclude(self):
