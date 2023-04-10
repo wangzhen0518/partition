@@ -21,19 +21,19 @@ def load_design(benchmark, design, b_pth, use_vir=True):
     os.system(f"mkdir -p {design_pth}")
     hg = hypergraph()
     hg_file = os.path.join(design_pth, design + hg_ext)
-    # if os.path.exists(hg_file):
-    #     print(f"read {hg_file}")
-    #     hg.read_from_file(hg_file)
-    # else:
-        # 无论是否使用 virtual edge, 都需要确保 .hg 文件存在
-    hg_ori_file = os.path.join(design_pth, design + ".hg")
-    if not os.path.exists(hg_ori_file):
-        print(f"generate {hg_ori_file}")
-        pl_config = os.path.join("pl_config", benchmark, design + ".json")
-        hg.build_from_config(pl_config, hg_ori_file)
+    if os.path.exists(hg_file):
+        print(f"read {hg_file}")
+        hg.read_from_file(hg_file)
     else:
-        print(f"read {hg_ori_file}")
-        hg.read_from_file(hg_ori_file)
+        # 无论是否使用 virtual edge, 都需要确保 .hg 文件存在
+        hg_ori_file = os.path.join(design_pth, design + ".hg")
+        if not os.path.exists(hg_ori_file):
+            print(f"generate {hg_ori_file}")
+            pl_config = os.path.join("pl_config", benchmark, design + ".json")
+            hg.build_from_config(pl_config, hg_ori_file)
+        else:
+            print(f"read {hg_ori_file}")
+            hg.read_from_file(hg_ori_file)
     # 如果使用 virtual edge, 并且 .vir 存在, 那么上一个 if 已经读过文件
     # 所以此处为使用 virtual edge, 但是 .vir 文件不存在, 应生成 .vir 文件
     if use_vir:
@@ -81,10 +81,12 @@ def run_partition(hg, k, ubf, method_pth, use_vir=True, is_vis=False):
             vis_file = res_file + f"{pl_ext}.png"
             if not os.path.exists(vis_file):
                 plot_pl_with_par(par_dict, vis_file)
-    val = np.min(val_lst)
-    idx = np.argmin(val_lst)
-    # stat_key=stat_key.
-    return stat_key, {"value": val, "idx": float(idx)}
+    val = np.average(val_lst)
+    # idx = np.argmin(val_lst)
+    stat_key = ".".join(stat_key.split(".")[:-1])
+    return stat_key, {
+        "value": val,
+    }
 
 
 if __name__ == "__main__":

@@ -161,11 +161,14 @@ class hypergraph:
         for n1 in range(self.num_node):
             n1_flow = dict()
             q = [n1]
+            one_loop_nei = set()
             # TODO 是否对一阶邻居添加虚拟边？重复了？
             for i in range(k):
                 next_neighbors = []  # 下次循环需要访问邻居的结点
                 for n_tmp in q:  # 遍历第i阶邻居
                     nei_nodes, nei_weight = self.find_neighbors(n_tmp)
+                    if n_tmp == n1:
+                        one_loop_nei.update(nei_nodes)
                     tmp_nei = []  # n_tmp 的邻居中，下次循环需要访问邻居的结点
                     for n2, w in zip(nei_nodes, nei_weight):
                         if n2 > n1:  # TODO去重，是否要移到find_neighbors中
@@ -181,7 +184,8 @@ class hypergraph:
                     next_neighbors += tmp_nei
                 q = next_neighbors
             for n2, w in n1_flow.items():
-                vir_edge.append((int(w), n1, n2))
+                if n2 not in one_loop_nei:
+                    vir_edge.append((int(w), n1, n2))
         return vir_edge
 
     def add_vir_edge(self, vir_edge: list):
