@@ -12,7 +12,7 @@ from multiprocessing import Pool
 from datetime import datetime
 
 from utils import del_ext_name, plot_pl_with_par
-from manager import generate_par, eval
+from manager import generate_par, eval_par
 
 
 class default_method(ABC):
@@ -122,9 +122,9 @@ class default_method(ABC):
         self.conclude()
 
 
-class shmetis_method(default_method):
+class shmetis(default_method):
     def __init__(self, benchmark, is_vis=False):
-        super(shmetis_method, self).__init__(benchmark, is_vis)
+        super(shmetis, self).__init__(benchmark, is_vis)
         """
         config_dict: dict(
             'k': [...],
@@ -164,7 +164,7 @@ class shmetis_method(default_method):
         # 评价切分好坏
         pl_file = os.path.join(self.pl_pth, design + ".gp.pl")
         par_dict = generate_par(par_file, pl_file)
-        val, _ = eval(par_dict)
+        val, _ = eval_par(par_dict)
 
         # 记录分析结果
         self.stats_dict[res_name] = {"io": io_time, "run": run_time, "value": val}
@@ -174,13 +174,13 @@ class shmetis_method(default_method):
 
         if self.is_vis:
             vis_file = os.path.join(self.vis_pth, res_name + ".png")
-            plot_pl_with_par(pl_file, par_file, vis_file)
+            plot_pl_with_par(par_dict, vis_file)
 
     def run(self, *args):
         # TODO 将 *.hg 文件的生成过程也加到这里，需要修改 self.get_hg_files()
         msg = " ".join([str(s) for s in args])
         self.logger.info(msg + " start")
-        # state,res=self.partition(args)
+        state,res=self.partition(args)
         state, res = 0, ""
         if state == 0:
             args = list(args).append(res)

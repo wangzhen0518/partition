@@ -1,31 +1,47 @@
 import numpy as np
 
-import dreamplace.PlaceDB as PlaceDB
-import dreamplace.Params as Params
+from dreamplace.Params import Params
+from dreamplace.PlaceDB import PlaceDB
 
 from utils import dict_append, del_ext_name
+
+pl_ext = "gp"  # gp or ntup
 
 
 class hypergraph:
     def __init__(self):
-        self.hg_file: str = None
         self.design: str = None
+        self.hg_file: str = None
+        self.pl_file: str = None
+        self.design_pth: str = None
         self.num_edge: int = None
         self.num_node: int = None
         self.edge_width: list = None
         self.e2n: list = None
         self.n2e: list = None
 
-    def read(self, hg_file):
-        self.read_from_file(hg_file)
-
     def read_from_file(self, hg_file):
         self.hg_file = hg_file
         self.design = del_ext_name(hg_file)
+        self.design_pth = os.path.dirname(hg_file)
+        self.pl_file = os.path.join(self.design_pth, self.design + f".{pl_ext}.pl")
         self.load_hypergraph(hg_file)
         self.generate_n2e()
 
-    def read_from_db(self, placedb: PlaceDB):
+    def build_from_config(self, pl_config, hg_file):
+        self.hg_file = hg_file
+        self.design = del_ext_name(hg_file)
+        self.design_pth = os.path.dirname(hg_file)
+        self.pl_file = os.path.join(self.design_pth, self.design + f".{pl_ext}.pl")
+
+        params = Params()
+        placedb = PlaceDB()
+        params.load(pl_config)
+        placedb(params)
+        self.read_from_db(placedb)
+        self.write(hg_file)
+
+    def read_from_db(self, placedb):
         # 遍历 placedb.net2pin_map, placedb.net_weights
         e2n_lst = []
         edge_weight = []
@@ -43,7 +59,6 @@ class hypergraph:
     def write(self, dst=None):
         if dst is None:
             dst = self.hg_file
-        self.hg_file = dst
         with open(dst, "w", encoding="utf-8") as f:
             f.write(f"{self.num_edge} {self.num_node} 1\n")  # 1 表示加权图
             for w, node_lst in zip(self.edge_width, self.e2n):
@@ -52,6 +67,7 @@ class hypergraph:
                     s += " " + str(nid + 1)  # nid 需从 1 开始
                 s += "\n"
                 f.write(s)
+        self.hg_file = dst
 
     def load_hypergraph(self, hg_file=None):
         if hg_file is None:
@@ -138,12 +154,14 @@ class hypergraph:
         k: 到k阶邻居为止
         w_thre: 小于 w_thre 的 width，不再继续寻找其邻居
         """
+        # TODO 数据流具体计算方法还需修改
         # 每个点寻找其邻居
         # vir_edge = [ (dataflow, n1, n2), ...], n2 > n1
         vir_edge = []
         for n1 in range(self.num_node):
             n1_flow = dict()
             q = [n1]
+            # TODO 是否对一阶邻居添加虚拟边？重复了？
             for i in range(k):
                 next_neighbors = []  # 下次循环需要访问邻居的结点
                 for n_tmp in q:  # 遍历第i阶邻居
@@ -153,7 +171,9 @@ class hypergraph:
                         if n2 > n1:  # TODO去重，是否要移到find_neighbors中
                             if n2 in n1_flow:
                                 # 此处不将n2添加到tmp_nei中，因为之前访问过n2了
-                                w = n1_flow[n2] + w / 2**i
+                                w = (
+                                    n1_flow[n2] + (w + n1_flow[n_tmp]) / 2**i
+                                )  # TODO 是否加上 tmp_nei 的权重，感觉是必要的
                             elif w >= w_thre:
                                 n1_flow[n2] = w
                                 tmp_nei.append(n2)
@@ -172,6 +192,12 @@ class hypergraph:
             self.n2e[n1].append(eid)
             self.n2e[n2].append(eid)
         self.num_edge += len(vir_edge)
+
+    def dataflow_improve(self):
+        vir_edge = self.cal_dataflow()
+        self.add_vir_edge(vir_edge)
+        vhg_file = self.hg_file.replace(".hg", ".vir")
+        self.write(vhg_file)
 
 
 import glob

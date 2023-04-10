@@ -8,7 +8,7 @@ dreamplace.egg-info
 # *dist*
 *.so
 configure.*
-test.*
+# test.*
 *.svg
 *.png
 
@@ -19,7 +19,10 @@ lib/
 res/
 log/
 install/
-benchmarks/
+# benchmarks/
+tmp/
 # thirdparty/
 
 .DS_Store
+
+!benchmarks/simple/

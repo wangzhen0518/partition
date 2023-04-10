@@ -8,6 +8,11 @@ import dreamplace.PlaceDB as PlaceDB
 import dreamplace.Params as Params
 
 
+def check_pth(pth):
+    if not os.path.exists(pth):
+        os.system(f"mkdir ")
+
+
 def del_ext_name(name: str):
     name = os.path.basename(name)
     name = name.split(".")[0]
@@ -60,10 +65,12 @@ def load_position(pl_file):
         f.readline()
         f.readline()
         for node in f:
-            node_x, node_y = node.split()[1:3]
-            node_x, node_y = int(node_x), int(node_y)
-            pos_x.append(node_x)
-            pos_y.append(node_y)
+            node = node.split()
+            if len(node) >= 3:
+                node_x, node_y = node[1:3]
+                node_x, node_y = int(node_x), int(node_y)
+                pos_x.append(node_x)
+                pos_y.append(node_y)
     return pos_x, pos_y
 
 
@@ -116,9 +123,12 @@ def visualize_graph(gfile, pfile, dst):
     hg.clear()
 
 
-def plot_pl_with_par(pl_file, par_file, vis_file):
-    pos_x, pos_y = load_position(pl_file)
-    v_part = load_par(par_file)
+def plot_pl_with_par(par: dict, vis_file):
+    pos_x, pos_y, v_part = [], [], []
+    for k, (n, kid, kx, ky) in par.items():
+        pos_x.extend(kx)
+        pos_y.extend(ky)
+        v_part.extend([k] * n)
     fig, ax = plt.subplots(dpi=1000)
     ax.scatter(
         pos_x,
@@ -129,6 +139,7 @@ def plot_pl_with_par(pl_file, par_file, vis_file):
         cmap=plt.cm.jet,
     )
     fig.savefig(vis_file, dpi=1000)
+    plt.close(fig)
 
 
 def check_hg_file(file_name):
@@ -172,3 +183,8 @@ def generate_benchmark_dict(benchmark, method):
         par_list.sort()
         bench_dict[design] = {"hg": hg_file, "pl": pl_file, "par": par_list}
     return bench_dict
+def analysis_stats(res: str):
+    res = res.split("\n")[-3:-1]
+    run_time = float(res[0].split(":")[-1].replace("sec", ""))
+    io_time = float(res[1].split(":")[-1].replace("sec", ""))
+    return run_time, io_time

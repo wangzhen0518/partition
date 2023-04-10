@@ -1,15 +1,8 @@
 import numpy as np
+import jstyleson
 
 from utils import load_position, load_par, dict_append, del_ext_name, generate_benchmark_dict
 
-# """
-# partition的数据结构为
-# {
-#     ...,
-#     k: [(id, x, y), ...],
-#     ...
-# }
-# """
 """
 partition的数据结构为
 {
@@ -20,6 +13,7 @@ partition的数据结构为
 
 n: 第k个类中点的数量
 """
+
 
 def generate_par(par_file, pl_file):
     print(par_file, pl_file)
@@ -41,8 +35,10 @@ def generate_par(par_file, pl_file):
         par_dict[k] = [nk, id_list, x, y]
     return par_dict
 
-def eval(par: dict):
+
+def eval_par(par: dict):
     # TODO 改成 tensor 版本，加速
+    # TODO 可能不够平稳
     # 先将partition转换成numpy.array
     # val = 1/N sum_k sum_i [(xi-x_bar)^2 + (yi-y_bar)^2]
     N = 0
@@ -50,7 +46,7 @@ def eval(par: dict):
     val_list = []
     for k, (n, _id, x, y) in par.items():
         N += n
-        val_tmp = x.var() + y.var()
+        val_tmp = np.sqrt(np.var(x) + np.var(y))
         # val += val_tmp * n
         val += val_tmp
         val_list.append(val_tmp)
@@ -69,30 +65,80 @@ def num_par(par: dict):
     print(num)
 
 
+def sort_keys(key_lst, type):
+    idx_lst = []
+    k_lst = []
+    if type == "k":
+        tmp = []
+        for k in key_lst:
+            idx = int(k.split(".")[1])
+            tmp.append((idx, k))
+        tmp.sort()
+        for idx, k in tmp:
+            idx_lst.append(idx)
+            k_lst.append(k)
+    elif type == "g":
+        for k in key_lst:
+            idx = k.split(".")[0]
+            idx_lst.append(idx)
+            k_lst.append(k)
+    return idx_lst, k_lst
+
+
+def compare(vir_conclude, hg_conclude, type):
+    cmp_f = lambda x, y: (x - y) / y
+    with open(vir_conclude, "r", encoding="utf-8") as f:
+        vir_conclude = jstyleson.load(f)
+    with open(hg_conclude, "r", encoding="utf-8") as f:
+        hg_conclude = jstyleson.load(f)
+    idx_lst, k_lst = sort_keys(vir_conclude.keys(), type)
+    cmp_lst = []
+    for t in k_lst:
+        cmp_lst.append(cmp_f(vir_conclude[t]["value"], hg_conclude[t]["value"]))
+    return idx_lst, k_lst, cmp_lst
 
 
 if __name__ == "__main__":
-    import glob, os
+    type = "g"  # 'k' or 'g', k 表示按照切分数量优先, g 表示按照图有限
+    vir_gp_conclude = "res/ispd2005/conclude.vir.shmetis.gp.json"
+    hg_gp_conclude = "res/ispd2005/conclude.hg.shmetis.gp.json"
+    idx_lst, k_lst, cmp_gp_lst = compare(vir_gp_conclude, hg_gp_conclude, type)
 
-    bench_dict = generate_benchmark_dict("ispd2005", "shmetis_method")
+    # vir_ntup_conclude = "res/ispd2005/conclude.vir.shmetis.ntup.json"
+    # hg_ntup_conclude = "res/ispd2005/conclude.hg.shmetis.ntup.json"
+    # _, cmp_ntup_lst = compare(vir_ntup_conclude, hg_ntup_conclude)
 
-    # par_pth = "res/ispd2005/shmetis_method/par"
-    # pl_pth = "res/ispd2005/pl"
-    # par_list = glob.glob(os.path.join(par_pth, "*"))
-    # pl_list = glob.glob(os.path.join(pl_pth, "*"))
-    # par_list.sort()
-    # pl_list.sort()
+    import matplotlib.pyplot as plt
 
-    # for par_file, pl_file in zip(par_list, pl_list):
-    #     par = generate_par(par_file, pl_file)
-    #     var = eval(par)
-    #     print(f"{par_file}: {var:.4f}")
-
-    for design, d in bench_dict.items():
-        pl_file = d["pl"]
-        par_list = d["par"]
-        for par_file in par_list:
-            par = generate_par(par_file, pl_file)
-            var, var_list = eval(par)
-            # print(f"{pl_file} {par_file}: {var:.4f}, {var_list}")
-            print(f"{pl_file} {par_file}: {var:.4f}")
+    fig, ax = plt.subplots()
+    x = list(range(len(idx_lst)))
+    ax.scatter(x, cmp_gp_lst)
+    # ax.scatter(x, cmp_ntup_lst)
+    ax.axhline(y=0, c="r", ls="-")
+    ax.set_ylabel(r"$\frac{value_{vir}}{value_{hg}}$", fontdict={"size": 16}, rotation=0, y=1)
+    idx_r = idx_lst[0]
+    x_l = x_r = x[0]  # x_l 是区间左端点, x_r 是区间右端点
+    for i, (xi, idx) in enumerate(zip(x, idx_lst)):
+        if idx != idx_r:
+            x_r = x[i - 1]
+            ax.axvline(x=(x_r + xi) / 2, c="orange", ls="--")
+            ax.annotate(
+                idx_r,
+                xy=((x_l + x_r) / 2, 0.1),
+                xytext=((x_l + x_r) / 2 - len(str(idx_r)) / (x_r - x_l) / 2, 0.1),
+                c="darkred",
+                weight="bold",
+            )
+            idx_r = idx
+            x_l = xi
+    x_r = x[-1]
+    ax.annotate(
+        idx_r,
+        xy=((x_l + x_r) / 2, 0.1),
+        xytext=((x_l + x_r) / 2 - len(str(idx_r)) / (x_r - x_l) / 2, 0.1),
+        c="darkred",
+        weight="bold",
+    )
+    fig.savefig("res/ispd2005/conclude.shmetis.png", dpi=300)
+    plt.close(fig)
+    # print(k_lst)
