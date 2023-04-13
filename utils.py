@@ -183,6 +183,8 @@ def generate_benchmark_dict(benchmark, method):
         par_list.sort()
         bench_dict[design] = {"hg": hg_file, "pl": pl_file, "par": par_list}
     return bench_dict
+
+
 def analysis_stats(res: str):
     res = res.split("\n")[-3:-1]
     run_time = float(res[0].split(":")[-1].replace("sec", ""))

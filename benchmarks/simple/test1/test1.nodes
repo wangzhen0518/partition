@@ -1,0 +1,9 @@
+USTC nodes 1.0
+# Created   :   Apr 10  2023
+# User      :   Zhen Wang
+
+NumNodes : 3
+NumTerminals : 0
+    o0 8 4
+    o1 2 1
+    o2 8 4
