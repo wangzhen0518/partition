@@ -107,7 +107,7 @@ void PlaceDB::lef_macro_cbk(LefParser::lefiMacro const& m) {
       index_type siteId = m_mSiteName2Index.at(m.siteName());
       m_vSiteUsedCount[siteId] += 1; 
     } else {
-      dreamplacePrint(kWARN, "Macro site name %s is NOT DEFINED in site names, add to default site %s", 
+      dreamplacePrint(kWARN, "Macro site name %s is NOT DEFINED in site names, add to default site %s\n", 
           m.siteName(), m_vSite[m_coreSiteId].name().c_str());
       m_vSiteUsedCount[m_coreSiteId] += 1; 
     }
@@ -968,7 +968,7 @@ void PlaceDB::add_bookshelf_net(BookshelfParser::Net const& n) {
     // create and add pin
     // assume pin offset starts from center
     createPin(
-        net, node,
+        net, node, netPin.pin_name,
         SignalDirect((netPin.direct == 'I')
                          ? SignalDirectEnum::INPUT
                          : (netPin.direct == 'O') ? SignalDirectEnum::OUTPUT
@@ -1391,14 +1391,15 @@ void PlaceDB::addPin(index_type macroPinId, Net& net, Node& node) {
   MacroPin const& mpin = macro.macroPin(macroPinId);
 
   // create and add pin
-  createPin(net, node, mpin.direct(), center(mpin.bbox()), macroPinId);
+  createPin(net, node, mpin.name(), mpin.direct(), center(mpin.bbox()), macroPinId);
 }
-Pin& PlaceDB::createPin(Net& net, Node& node, SignalDirect const& direct,
+Pin& PlaceDB::createPin(Net& net, Node& node,std::string name, SignalDirect const& direct,
                         Point<PlaceDB::coordinate_type> const& offset,
                         PlaceDB::index_type macroPinId) {
   // create and add pin
   m_vPin.push_back(Pin());
   Pin& pin = m_vPin.back();
+  pin.setMacroPinName(name);
   pin.setId(m_vPin.size() - 1);
   pin.setNodeId(node.id());
   pin.setNetId(net.id());

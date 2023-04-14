@@ -1,12 +1,12 @@
 {
   "design": [
     "adaptec1",
-    "adaptec2",
-    "adaptec3",
-    "adaptec4",
-    "bigblue1",
-    "bigblue2",
-    "bigblue3",
+    // "adaptec2",
+    // "adaptec3",
+    // "adaptec4",
+    // "bigblue1",
+    // "bigblue2",
+    // "bigblue3",
     // "bigblue4"
   ],
   "shmetis": {

@@ -226,6 +226,7 @@ void bind_PlaceDB(pybind11::module& m)
     // DREAMPLACE_NAMESPACE::Pin.h
     pybind11::class_<DREAMPLACE_NAMESPACE::Pin, DREAMPLACE_NAMESPACE::Object> (m, "Pin")
         .def(pybind11::init<>())
+        .def("macroPinName",&DREAMPLACE_NAMESPACE::Pin::macroPinName)
         .def("macroPinId", &DREAMPLACE_NAMESPACE::Pin::macroPinId)
         .def("nodeId", &DREAMPLACE_NAMESPACE::Pin::nodeId)
         .def("netId", &DREAMPLACE_NAMESPACE::Pin::netId)

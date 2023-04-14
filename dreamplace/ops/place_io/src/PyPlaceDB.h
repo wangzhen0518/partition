@@ -60,6 +60,8 @@ struct PyPlaceDB
     pybind11::list flat_node2pin_map; ///< flatten version of node2pin_map 
     pybind11::list flat_node2pin_start_map; ///< starting index of each node in flat_node2pin_map
 
+    pybind11::dict pin_name2id_map; ///< pin name to id map
+    pybind11::list pin_names; ///< pin name 
     pybind11::list pin2node_map; ///< 1D array, contain parent node id of each pin 
     pybind11::list pin2net_map; ///< 1D array, contain parent net id of each pin 
 

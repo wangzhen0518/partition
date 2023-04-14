@@ -30,7 +30,10 @@ class Pin : public Object
         /// assignment
         Pin& operator=(Pin const& rhs);
 
-        /// member functions 
+        /// member functions
+        std::string const& macroPinName() const { return m_name; }
+        Pin& setMacroPinName(std::string name) { m_name = name; return *this;}
+        
         index_type const& macroPinId() const {return m_macroPinId;}
         Pin& setMacroPinId(index_type id) {m_macroPinId = id; return *this;}
 
@@ -48,7 +51,8 @@ class Pin : public Object
     protected:
         void copy(Pin const& rhs);
 
-        index_type m_macroPinId; ///< index to the macro pin list of corresponding macro 
+        std::string m_name; ///< pin name 
+        index_type m_macroPinId;  ///< index to the macro pin list of corresponding macro
         index_type m_nodeId; ///< corresponding node  
         index_type m_netId; ///< corresponding net 
         point_type m_offset; ///< offset based on the origin of node 
@@ -57,6 +61,7 @@ class Pin : public Object
 
 inline Pin::Pin() 
     : Pin::base_type()
+    , m_name()
     , m_macroPinId(std::numeric_limits<Pin::index_type>::max())
     , m_nodeId(std::numeric_limits<Pin::index_type>::max())
     , m_netId(std::numeric_limits<Pin::index_type>::max())
@@ -80,6 +85,7 @@ inline Pin& Pin::operator=(Pin const& rhs)
 }
 inline void Pin::copy(Pin const& rhs)
 {
+    m_name = rhs.m_name;
     m_macroPinId = rhs.m_macroPinId;
     m_nodeId = rhs.m_nodeId; 
     m_netId = rhs.m_netId; 
