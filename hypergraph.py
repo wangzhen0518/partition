@@ -12,8 +12,193 @@ class Net:
         self.tail = []
         self.head = []
 
+class Hypergraph:
+    def __init__(self) -> None:
+        """
+        self.e2n: 每个edge存储2个列表，self.e2n[0]是tail_node, self.e2n[1]是head_node
+        self.n2e: 每个node存储2个列表，self.n2e[0]此结点是tail_node的edge_list, self.e2n[1]此结点时head_node的edge_list
+        """
+        self.design: str = None
+        self.hg_file: str = None
+        self.pl_file: str = None
+        self.design_pth: str = None
+        self.num_edge: int = None
+        self.num_node: int = None
+        self.edge_width: list = None
+        self.e2n: list = None
+        self.n2e: list = None
+        self.pl: tuple = None
+        
+    def read_from_file(self, hg_file):
+        print(f"read {hg_file}")
+        self.hg_file = hg_file
+        self.design = del_ext_name(hg_file)
+        self.design_pth = os.path.dirname(hg_file)
+        self.load_hypergraph(hg_file)
+        self.generate_n2e()
 
-class hypergraph:
+    def build_from_config(self, pl_config, hg_file):
+        print(f"generate {hg_file}")
+        self.hg_file = hg_file
+        self.design = del_ext_name(hg_file)
+        self.design_pth = os.path.dirname(hg_file)
+
+        params = Params()
+        placedb = PlaceDB()
+        params.load(pl_config)
+        placedb(params)
+        self.read_from_db(placedb)
+        self.write(hg_file.replace(".dire", ""))
+
+    def read_from_db(self, placedb: PlaceDB):
+        # 遍历 placedb.net2pin_map, placedb.net_weights
+        num_node = placedb.num_physical_nodes
+        num_edge = placedb.num_nets
+        e2n_lst = []
+        edge_weight = []
+        cnt = 0
+        for e, w in zip(placedb.net2pin_map, placedb.net_weights):
+            edge_weight.append(int(w))
+            node_lst = np.unique([placedb.pin2node_map[p] for p in e]).tolist()
+            if len(node_lst)==1:
+                node_lst.append(num_node)
+                num_node+=1
+                cnt+=1
+        self.e2n = e2n_lst
+        self.generate_n2e(e2n_lst)
+        self.edge_width = edge_weight
+        self.num_edge = num_edge
+        self.num_node = num_node
+
+    def read_pl(self, pl_file):
+        print(f"read {pl_file}")
+        self.pl = load_position(pl_file)
+
+    def write(self, dst=None):
+        if dst is None:
+            dst = self.hg_file
+        print(f"write {dst}")
+        with open(dst, "w", encoding="utf-8") as f:
+            f.write(f"{self.num_edge} {self.num_node} 1\n")  # 1 表示加权图
+            for w, node_lst in zip(self.edge_width, self.e2n):
+                s = str(w)
+                for nid in node_lst:
+                    s += " " + str(nid + 1)  # nid 需从 1 开始
+                s += "\n"
+                f.write(s)
+        self.hg_file = dst
+
+    def load_hypergraph(self, hg_file=None):
+        if hg_file is None:
+            hg_file = self.hg_file
+        e2n_lst = []
+        edge_width = []
+        with open(hg_file, encoding="utf-8") as f:
+            num_edge, num_node, _ = f.readline().split()
+            num_edge, num_node = int(num_edge), int(num_node)
+            for l in f:
+                l = l.split()
+                w = int(l[0])
+                node_lst = [int(nid) - 1 for nid in l[1:]]  # nid - 1 是因为 .hg 文件中的 nid 从 1 开始
+                edge_width.append(w)
+                e2n_lst.append(node_lst)
+            for l in f:
+                l = l.split()
+                w = int(l[0])
+                tail_lst, head_lst = [], []
+                lst = tail_lst
+                for nid in l[1:]:
+                    nid = int(nid)
+                    if nid == -1:
+                        lst = head_lst
+                    else:
+                        lst.append(nid - 1)  # nid - 1 是因为 .hg 文件中的 nid 从 1 开始
+                edge_width.append(w)
+                e2n_lst.append((tail_lst, head_lst))
+        # initialize
+        self.num_edge = num_edge
+        self.num_node = num_node
+        self.edge_width = edge_width
+        self.e2n = e2n_lst
+        return num_edge, num_node, edge_width, e2n_lst
+
+    def generate_n2e(self, e2n=None):
+        """
+        根据 e2n 生成 n2e
+        """
+        if e2n is None:
+            e2n = self.e2n
+
+        n2e = dict()
+        for eid, (tail_lst, head_lst) in enumerate(e2n):
+            for t in tail_lst:
+                if t not in n2e:
+                    n2e[t] = [], []
+                n2e[t][0].append(eid)
+            for h in head_lst:
+                if h not in n2e:
+                    n2e[h] = [], []
+                n2e[h][1].append(eid)
+
+        # 将 dict 转换成 list
+        nid_lst = list(n2e.keys())
+        nid_lst.sort()
+        n2e_lst = []
+        for t in nid_lst:
+            n2e_lst.append(n2e[t])
+        # initialize
+        self.n2e = n2e_lst
+        return n2e_lst
+
+    def generate_e2n(self, n2e=None):
+        """
+        根据 n2e 生成 e2n
+        """
+        if n2e is None:
+            n2e = self.n2e
+
+        e2n = dict()
+        for nid, (tail_lst, head_lst) in enumerate(n2e):
+            for t in tail_lst:
+                if t not in e2n:
+                    e2n[t] = [], []
+                e2n[t][0].append(nid)
+            for h in head_lst:
+                if h not in e2n:
+                    e2n[h] = [], []
+                e2n[h][1].append(eid)
+
+        # 将 dict 转换成 list
+        eid_lst = list(e2n.keys())
+        eid_lst.sort()
+        e2n_lst = []
+        for eid in eid_lst:
+            e2n_lst.append(e2n[eid])
+
+        # initialize
+        self.e2n = e2n_lst
+        return e2n_lst
+
+    def find_neighbors(self, nid: int):# TODO DiHypergraph继承后，能否修改函数参数
+        """
+        is_forward: True 表示以nid为tail, 寻找其对应的head邻居
+        """
+        self_idx = 0 if is_forward else 1
+        nei_idx = 1 - self_idx
+        nei_node = []
+        nei_weight = []
+        for e in self.n2e[nid][self_idx]:
+            w = self.edge_width[e]
+            for n2 in self.e2n[e][nei_idx]:
+                nei_node.append(n2)
+                nei_weight.append(w)
+        if len(nei_node) > 0:
+            nei_weight = np.bincount(nei_node, weights=nei_weight).astype(int)
+            nei_node = np.unique(nei_node)
+            nei_weight = nei_weight[nei_node]
+        return nei_node, nei_weight
+
+class DiHypergraph(Hypergraph):
     def __init__(self):
         """
         self.e2n: 每个edge存储2个列表，self.e2n[0]是tail_node, self.e2n[1]是head_node
@@ -296,7 +481,7 @@ def generate_single_hg_file(src, dst):
     params.load(src)
     placedb(params)
 
-    hg = hypergraph()
+    hg = DiHypergraph()
     hg.read_from_db(placedb)
     hg.write(dst)
     return hg
@@ -309,13 +494,13 @@ def read_benchmark(benchmark):
     hg_lst = []
     for hg_file in hg_file_lst:
         print(hg_file)
-        hg = hypergraph()
+        hg = DiHypergraph()
         hg.read_from_file(hg_file)
         hg_lst.append(hg)
     return hg_lst
 
 
-def all_max_edge(hg_lst: list[hypergraph]):
+def all_max_edge(hg_lst: list[DiHypergraph]):
     cnt_lst = []
     pos_lst = []
     for hg in hg_lst:
@@ -341,7 +526,7 @@ def all_max_edge(hg_lst: list[hypergraph]):
             f.write(f"{hg.hg_file} {pos}\n")
 
 
-def add_all_vir_edge(hg_lst: list[hypergraph]):
+def add_all_vir_edge(hg_lst: list[DiHypergraph]):
     for hg in hg_lst:
         print(hg.hg_file)
         print("start calculate dataflow")
@@ -353,7 +538,7 @@ def add_all_vir_edge(hg_lst: list[hypergraph]):
         hg.write(dst_file)
 
 
-def check(n1, n2, hg: hypergraph):  #! 此函数在当前改为有向超图后，已无效
+def check(n1, n2, hg: DiHypergraph):  #! 此函数在当前改为有向超图后，已无效
     cnt = 0
     edge_lst = []
     for eid, node_lst in enumerate(hg.e2n):

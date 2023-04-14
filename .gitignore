@@ -19,6 +19,7 @@ lib/
 res/
 log/
 install/
+data/
 # benchmarks/
 tmp/
 # thirdparty/

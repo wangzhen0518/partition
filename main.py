@@ -5,7 +5,7 @@ import numpy as np
 
 from multiprocessing import Pool
 
-from hypergraph import hypergraph
+from hypergraph import DiHypergraph
 from manager import generate_par, eval_par
 from utils import plot_pl_with_par, del_ext_name, analysis_stats, load_par
 from dreamplace.Params import Params
@@ -19,7 +19,7 @@ def load_design(benchmark, design, b_pth, use_vir=True):
     hg_ext = ".vir" if use_vir else ".hg"
     design_pth = os.path.join(b_pth, design)
     os.system(f"mkdir -p {design_pth}")
-    hg = hypergraph()
+    hg = DiHypergraph()
     hg_file = os.path.join(design_pth, design + hg_ext + ".dire")
     if os.path.exists(hg_file):
         hg.read_from_file(hg_file)
@@ -40,7 +40,7 @@ def load_design(benchmark, design, b_pth, use_vir=True):
     return hg
 
 
-def run_partition(hg: hypergraph, k, ubf, method_pth, use_vir=True, is_vis=False):
+def run_partition(hg: DiHypergraph, k, ubf, method_pth, use_vir=True, is_vis=False):
     N = 10
     hg_ext = ".vir" if use_vir else ".hg"
     val_lst = []
@@ -116,7 +116,7 @@ def run_once(benchmark, b_pth, config, use_vir, is_vis, n=8):
     stat_dict = dict()
     ubf = config["shmetis"]["UBfactor"][0]
     for hg in hg_lst:
-        hg: hypergraph
+        hg: DiHypergraph
         method_pth = os.path.join(hg.design_pth, "shmetis")
         os.system(f"mkdir -p {method_pth}")
         for k in config["shmetis"]["k"]:
