@@ -58,7 +58,7 @@ def generate_hg(gfile):
     return hg, is_weight_vec, vec_weight_list
 
 
-def load_position(pl_file):
+def load_pl(pl_file):
     pos_x, pos_y = [], []
     with open(pl_file, encoding="utf-8") as f:
         # 跳过前两行
@@ -128,7 +128,7 @@ def plot_pl_with_par(par: dict, vis_file):
     for k, (n, kid, kx, ky) in par.items():
         pos_x.extend(kx)
         pos_y.extend(ky)
-        v_part.extend([k] * n)
+        v_part.extend([100 * k] * n)
     fig, ax = plt.subplots(dpi=1000)
     ax.scatter(
         pos_x,
@@ -136,7 +136,7 @@ def plot_pl_with_par(par: dict, vis_file):
         s=0.5,
         c=v_part,
         edgecolors="none",
-        cmap=plt.cm.jet,
+        cmap=plt.cm.gist_ncar,
     )
     fig.savefig(vis_file, dpi=1000)
     plt.close(fig)
@@ -190,3 +190,68 @@ def analysis_stats(res: str):
     run_time = float(res[0].split(":")[-1].replace("sec", ""))
     io_time = float(res[1].split(":")[-1].replace("sec", ""))
     return run_time, io_time
+
+
+def draw_density(hg):
+    node_list = np.array(range(hg.num_node))
+    weight = np.zeros(shape=(hg.num_node, 2))  # 第一位是算上虚拟边的总权重，第二位不算
+    for i, (tail_list, head_list) in enumerate(hg.n2e):
+        ori_tw = np.sum([hg.edge_width[e] for e in tail_list])
+        ori_hw = np.sum([hg.edge_width[e] for e in head_list])
+        ori_total = ori_tw + ori_hw
+        weight[i][0] = weight[i][1] = ori_total
+    for w, t, h in hg.vir_edge:
+        weight[t][0] += w
+        weight[h][0] += w
+    weight[::-1].sort(axis=0)  # 降序
+
+    total_weight = []
+    ori_total_weight = []
+    for total, ori_total in weight:
+        total_weight.append(total)
+        ori_total_weight.append(ori_total)
+
+    pic_file = hg.hg_file + ".density.png"
+    fig, ax = plt.subplots(dpi=300)
+    ax.plot(node_list, total_weight, c="r", linewidth=0.5)
+    ax.scatter(node_list, ori_total_weight, s=1)
+    ax.grid()
+    ax.set_yscale("log")
+    ax.set_ylabel("weight")
+
+    ax.text(
+        4 / 7 * hg.num_node,
+        1 / 2 * np.max(total_weight),
+        r"$edge_{vir}-edge_{hg}$=" + str(len(hg.vir_edge)),
+    )
+    fig.savefig(pic_file, dpi=300)
+    plt.close(fig)
+
+
+def draw_node_density(hg):
+    weight = np.zeros(shape=(hg.num_node,))  # 第一位是算上虚拟边的总权重，第二位不算
+    for i, (tail_list, head_list) in enumerate(hg.n2e):
+        ori_tw = np.sum([hg.edge_width[e] for e in tail_list])
+        ori_hw = np.sum([hg.edge_width[e] for e in head_list])
+        ori_total = ori_tw + ori_hw
+        weight[i] = ori_total
+    idx = np.argmax(weight)
+    w = weight[idx]
+    weight_ori = [hg.edge_width[e] for e in hg.n2e[idx][0]] + [hg.edge_width[e] for e in hg.n2e[idx][1]]
+    weight_vir = []
+    for w, t, h in hg.vir_edge:
+        if t == idx or h == idx:
+            weight_vir.append(w)
+
+    weight_ori.sort(reverse=True)
+    weight_vir.sort(reverse=True)
+    pic_file = hg.hg_file + ".node_density.png"
+    fig, ax = plt.subplots(dpi=300)
+    ax.scatter(range(len(weight_vir)), weight_vir, s=1, c="b")
+    ax.scatter(range(len(weight_vir), len(weight_vir) + len(weight_ori)), weight_ori, s=1, c="r")
+    ax.grid()
+    ax.set_yscale("log")
+    ax.set_ylabel("weight")
+    ax.set_xlabel("edge")
+    fig.savefig(pic_file, dpi=300)
+    plt.close(fig)

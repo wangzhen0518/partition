@@ -6,7 +6,7 @@ import numpy as np
 from multiprocessing import Pool
 
 from hypergraph import DiHypergraph
-from manager import generate_par, eval_par
+from manager import generate_par, eval_par, eval_par_HPWL
 from utils import plot_pl_with_par, del_ext_name, analysis_stats, load_par
 from dreamplace.Params import Params
 from dreamplace.PlaceDB import PlaceDB
@@ -40,56 +40,58 @@ def load_design(benchmark, design, b_pth, use_vir=True):
     return hg
 
 
-def run_partition(hg: DiHypergraph, k, ubf, method_pth, use_vir=True, is_vis=False):
+def run_partition(hg: DiHypergraph, k, ubf, method_pth, use_vir=True, is_vis=False, new_par=False):
     N = 10
     hg_ext = ".vir" if use_vir else ".hg"
-    val_lst = []
-    run_time_lst = []
-    io_time_lst = []
+    val_list = []
+    hpwl_list = []
+    run_time_list = []
+    io_time_list = []
     for i in range(N):
-        res_file = os.path.join(method_pth, hg.design + hg_ext + f".{k}.{i}")
+        par_file = os.path.join(method_pth, hg.design + hg_ext + f".{k}.{i}")
+        res_file = par_file + ".res"
         # 处理运行结果
-        if not os.path.exists(res_file + ".res"):
+        if os.path.exists(par_file) and os.path.exists(res_file) and not new_par:
+            print(f"{par_file}.res exists")
+            with open(par_file + ".res", encoding="utf-8") as f:
+                res = f.read()
+        else:
             cmd = f"shmetis {hg.hg_file} {k} {ubf}"
             print(i, cmd)
             status, res = subprocess.getstatusoutput(cmd)
             if status == 0:
-                os.system(f"mv {hg.hg_file}.part.{k} {res_file}")
-                with open(res_file + ".res", "w", encoding="utf-8") as f:
+                subprocess.getstatusoutput(f"mv {hg.hg_file}.part.{k} {par_file}")
+                with open(par_file + ".res", "w", encoding="utf-8") as f:
                     f.write(res)
             else:
-                print(f"Error {res}")
-        else:
-            print(f"{res_file}.res exists")
-            with open(res_file + ".res", encoding="utf-8") as f:
-                res = f.read()
+                print(f"{i}: {par_file}Error {res}")
         # 处理统计信息
-        par = load_par(res_file)
-        par_dict = generate_par(par, hg.pl)
-        stat_file = res_file + f".{pl_ext}.stat"
-        if not os.path.exists(stat_file):
-            run_time, io_time = analysis_stats(res)
-            val, _ = eval_par(par_dict)
-            with open(stat_file, "w", encoding="utf-8") as f:
-                f.write(f"{run_time:.4f} {io_time:.4f} {val:.4f}\n")
-        else:
-            with open(stat_file, encoding="utf-8") as f:
-                run_time, io_time, val = [float(c) for c in f.read().split()]
-        stat_key = os.path.basename(res_file).replace(hg_ext, "")
-        val_lst.append(val)
-        run_time_lst.append(run_time)
-        io_time_lst.append(io_time)
+        run_time, io_time = analysis_stats(res)
+        par_list = load_par(par_file)
+        par_dict = generate_par(par_list, hg.pl)
+        val, _ = eval_par(par_dict)
+        hpwl, _ = eval_par_HPWL(par_list, hg)
+        run_time_list.append(run_time)
+        io_time_list.append(io_time)
+        val_list.append(val)
+        hpwl_list.append(hpwl)
         # 生成可视化图片
         if is_vis:
-            vis_file = res_file + f".{pl_ext}.png"
-            if not os.path.exists(vis_file):
-                plot_pl_with_par(par_dict, vis_file)
-    val = np.average(val_lst)
-    run_time = np.average(run_time_lst)
-    io_time = np.average(io_time_lst)
-    # idx = np.argmin(val_lst)
-    stat_key = ".".join(stat_key.split(".")[:-1])
-    return stat_key, {"value": val, "run": run_time, "io": io_time}
+            vis_file = par_file + f".{pl_ext}.png"
+            plot_pl_with_par(par_dict, vis_file)
+    stat_key = hg.design + f".{k}"
+    best_idx = int(np.argmin(val_list))
+    val = np.average(val_list)
+    hpwl = np.average(hpwl_list)
+    run_time = np.average(run_time_list)
+    io_time = np.average(io_time_list)
+    return stat_key, {
+        "value": val,
+        "hpwl": hpwl,
+        "run_time": run_time,
+        "io_time": io_time,
+        "best": best_idx,
+    }
 
 
 def run_once(benchmark, b_pth, config, use_vir, is_vis, n=8):
@@ -105,7 +107,6 @@ def run_once(benchmark, b_pth, config, use_vir, is_vis, n=8):
         task_lst.append(pool.apply_async(load_design, args=(benchmark, design, b_pth, use_vir)))
     pool.close()
     pool.join()
-    hg_lst = []
     for task in task_lst:
         hg = task.get()
         hg_lst.append(hg)
@@ -120,6 +121,9 @@ def run_once(benchmark, b_pth, config, use_vir, is_vis, n=8):
         method_pth = os.path.join(hg.design_pth, "shmetis")
         os.system(f"mkdir -p {method_pth}")
         for k in config["shmetis"]["k"]:
+            # stat_key, stat_info = run_partition(hg, k, ubf, method_pth, use_vir, is_vis)
+            # stat_dict[stat_key] = stat_info
+
             task_lst.append(pool.apply_async(run_partition, args=(hg, k, ubf, method_pth, use_vir, is_vis)))
     pool.close()
     pool.join()
@@ -145,4 +149,4 @@ if __name__ == "__main__":
         config = jstyleson.load(f)
     num_thread = 4
     run_once(benchmark, b_pth, config, use_vir=False, is_vis=True, n=num_thread)
-    run_once(benchmark, b_pth, config, use_vir=True, is_vis=True, n=num_thread)
+    # run_once(benchmark, b_pth, config, use_vir=True, is_vis=True, n=num_thread)

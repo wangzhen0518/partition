@@ -3,7 +3,7 @@ import jstyleson
 import matplotlib.pyplot as plt
 import os
 
-from utils import load_position, load_par, dict_append, del_ext_name, generate_benchmark_dict
+from utils import load_pl, load_par, dict_append, del_ext_name, generate_benchmark_dict
 
 """
 partition的数据结构为
@@ -17,7 +17,7 @@ n: 第k个类中点的数量
 """
 
 
-def generate_par(par, pl):
+def generate_par(par_list, pl):
     pos_x, pos_y = pl
     pos_x, pos_y = np.array(pos_x), np.array(pos_y)
     n = len(pos_x)
@@ -25,7 +25,7 @@ def generate_par(par, pl):
     par_dict = dict()
     # 先为每个类构建array(id)
     for _id in range(n):  # 由于在hypergraph构建的时候，增加了边界点，使每条边都有tail和head, 所以此处需要限制长度
-        dict_append(par_dict, par[_id], _id)
+        dict_append(par_dict, par_list[_id], _id)
     # 为每一个类构建[n, array(id), array(x), array(y)]
     for k, id_list in par_dict.items():
         id_list = np.array(id_list)
@@ -36,7 +36,7 @@ def generate_par(par, pl):
     return par_dict
 
 
-def eval_par(par: dict):
+def eval_par(par_dict: dict):
     # TODO 改成 tensor 版本，加速
     # TODO 可能不够平稳
     # 先将partition转换成numpy.array
@@ -44,15 +44,57 @@ def eval_par(par: dict):
     # N = 0
     val = 0
     val_list = []
-    for k, (n, _id, x, y) in par.items():
+    for k, (n, _id, x, y) in par_dict.items():
         # N += n
         val_tmp = np.sqrt(np.var(x) + np.var(y))
         # val += val_tmp * n
         val += val_tmp
         val_list.append(val_tmp)
-    val /= len(par)
+    val /= len(par_dict)
     # val /= N
     return val, val_list
+
+
+def eval_par_HPWL(par_list: list, hg):
+    pos_x, pos_y = hg.pl
+    hpwl = dict()
+    num_nodes = len(pos_x)
+    for tail_list, head_list in hg.e2n:
+        node_list = tail_list + head_list
+        # HPWLe = max xi - min xi + max yi - min yi
+        # 寻找 max xi, min xi, max yi, min yi
+        xmax = ymax = 0
+        xmin = ymin = 1e10
+        xmax_id = xmin_id = ymax_id = ymin_id = 0
+        found = False  # 标记是否在实际点中找到了最值位置
+        for n in node_list:
+            if n < num_nodes:
+                found = True
+                if pos_x[n] > xmax:
+                    xmax = pos_x[n]
+                    xmax_id = n
+                if pos_x[n] < xmin:
+                    xmin = pos_x[n]
+                    xmin_id = n
+                if pos_y[n] > ymax:
+                    ymax = pos_y[n]
+                    ymax_id = n
+                if pos_y[n] < ymin:
+                    ymin = pos_y[n]
+                    ymin_id = n
+        if found:
+            k = par_list[xmax_id]
+            if (
+                par_list[xmax_id] == k
+                and par_list[xmin_id] == k
+                and par_list[ymax_id] == k
+                and par_list[ymin_id] == k
+            ):
+                if k not in hpwl:
+                    hpwl[k] = 0
+                hpwl[k] += xmax - xmin + ymax - ymin
+    total_hpwl = np.sum(list(hpwl.values())) / len(hpwl)
+    return total_hpwl, hpwl
 
 
 def num_par(par: dict):
@@ -171,15 +213,38 @@ def plot_improve(design_lst):
     plt.close()
 
 
-if __name__ == "__main__":
-    type = "g"  # 'k' or 'g', k 表示按照切分数量优先, g 表示按照图有限
-    vir_gp_conclude = "res/ispd2005/conclude.vir.shmetis.gp.json"
-    hg_gp_conclude = "res/ispd2005/conclude.hg.shmetis.gp.json"
-    idx_lst, k_lst, cmp_gp_lst = compare(vir_gp_conclude, hg_gp_conclude, type)
-    plot_cmp(cmp_gp_lst, idx_lst, type)
+def test_HPWL():
+    from hypergraph import DiHypergraph
 
-    benchmark = "ispd2005"
-    config_file = os.path.join("par_config", benchmark, "config.json")
-    with open(config_file, encoding="utf-8") as f:
-        config = jstyleson.load(f)
-    plot_improve(config["design"])
+    hg = DiHypergraph()
+
+    pos_x = [0, -2, 15, 10]
+    pos_y = [4, -1, 2, 0]
+    hg.e2n = [[[0, 1], [2, 3]]]
+    hg.pl = [pos_x, pos_y]
+    par_list = [0, 0, 0, 0]
+    hpwl, _ = eval_par_HPWL(par_list, hg)
+    assert hpwl == 22, "Error 1"
+
+    pos_x = [0, 7, 5, 4, 12, 16]
+    pos_y = [10, 14, 9, 2, 12, 5]
+    hg.e2n = [[[0], [1, 2]], [[0], [2, 3]], [[2], [4, 5]], [[3], [5]]]
+    hg.pl = [pos_x, pos_y]
+    par_list = [0, 0, 0, 1, 0, 0]
+    hpwl, _ = eval_par_HPWL(par_list, hg)
+    assert hpwl == 30, "Error 2"
+
+
+if __name__ == "__main__":
+    # type = "g"  # 'k' or 'g', k 表示按照切分数量优先, g 表示按照图有限
+    # vir_gp_conclude = "res/ispd2005/conclude.vir.shmetis.gp.json"
+    # hg_gp_conclude = "res/ispd2005/conclude.hg.shmetis.gp.json"
+    # idx_lst, k_lst, cmp_gp_lst = compare(vir_gp_conclude, hg_gp_conclude, type)
+    # plot_cmp(cmp_gp_lst, idx_lst, type)
+
+    # benchmark = "ispd2005"
+    # config_file = os.path.join("par_config", benchmark, "config.json")
+    # with open(config_file, encoding="utf-8") as f:
+    #     config = jstyleson.load(f)
+    # plot_improve(config["design"])
+    test_HPWL()

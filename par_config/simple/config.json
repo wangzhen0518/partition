@@ -1,0 +1,12 @@
+{
+  "design": [
+    //   "simple1",
+    // "simple2",
+    // "simple3",
+    "simple4"
+  ],
+  "shmetis": {
+    "k": [2, 50, 500, 1024],
+    "UBfactor": [2]
+  }
+}

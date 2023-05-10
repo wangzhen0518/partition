@@ -1,9 +1,12 @@
 import numpy as np
+import random
+import copy
+import pickle as pk
 
 from dreamplace.Params import Params
 from dreamplace.PlaceDB import PlaceDB
 
-from utils import dict_append, del_ext_name, load_position
+from utils import dict_append, del_ext_name, load_pl
 
 
 class Net:
@@ -11,6 +14,7 @@ class Net:
         self.w = 1
         self.tail = []
         self.head = []
+
 
 class Hypergraph:
     def __init__(self) -> None:
@@ -28,7 +32,7 @@ class Hypergraph:
         self.e2n: list = None
         self.n2e: list = None
         self.pl: tuple = None
-        
+
     def read_from_file(self, hg_file):
         print(f"read {hg_file}")
         self.hg_file = hg_file
@@ -60,10 +64,10 @@ class Hypergraph:
         for e, w in zip(placedb.net2pin_map, placedb.net_weights):
             edge_weight.append(int(w))
             node_lst = np.unique([placedb.pin2node_map[p] for p in e]).tolist()
-            if len(node_lst)==1:
+            if len(node_lst) == 1:
                 node_lst.append(num_node)
-                num_node+=1
-                cnt+=1
+                num_node += 1
+                cnt += 1
         self.e2n = e2n_lst
         self.generate_n2e(e2n_lst)
         self.edge_width = edge_weight
@@ -72,7 +76,7 @@ class Hypergraph:
 
     def read_pl(self, pl_file):
         print(f"read {pl_file}")
-        self.pl = load_position(pl_file)
+        self.pl = load_pl(pl_file)
 
     def write(self, dst=None):
         if dst is None:
@@ -179,7 +183,7 @@ class Hypergraph:
         self.e2n = e2n_lst
         return e2n_lst
 
-    def find_neighbors(self, nid: int):# TODO DiHypergraph继承后，能否修改函数参数
+    def find_neighbors(self, nid: int):  # TODO DiHypergraph继承后，能否修改函数参数
         """
         is_forward: True 表示以nid为tail, 寻找其对应的head邻居
         """
@@ -198,15 +202,18 @@ class Hypergraph:
             nei_weight = nei_weight[nei_node]
         return nei_node, nei_weight
 
+
 class DiHypergraph(Hypergraph):
     def __init__(self):
         """
         self.e2n: 每个edge存储2个列表，self.e2n[0]是tail_node, self.e2n[1]是head_node
         self.n2e: 每个node存储2个列表，self.n2e[0]此结点是tail_node的edge_list, self.e2n[1]此结点时head_node的edge_list
+        self.hg_src_file: 有向图文件
+        self.hg_file: 无向图文件
         """
         self.design: str = None
-        self.hg_file: str = None
-        self.hg_src_file: str = None
+        self.hg_file: str = None  # 无向图文件
+        self.hg_src_file: str = None  # 有向图文件
         self.pl_file: str = None
         self.design_pth: str = None
         self.num_edge: int = None
@@ -215,6 +222,7 @@ class DiHypergraph(Hypergraph):
         self.e2n: list = None
         self.n2e: list = None
         self.pl: tuple = None
+        self.vir_edge: list = []
 
     def read_from_file(self, hg_file):
         print(f"read {hg_file}")
@@ -272,7 +280,7 @@ class DiHypergraph(Hypergraph):
 
     def read_pl(self, pl_file):
         print(f"read {pl_file}")
-        self.pl = load_position(pl_file)
+        self.pl = load_pl(pl_file)
 
     def write(self, dst=None):
         if dst is None:
@@ -280,12 +288,15 @@ class DiHypergraph(Hypergraph):
         print(f"write {dst}")
         with open(dst, "w", encoding="utf-8") as f:
             f.write(f"{self.num_edge} {self.num_node} 1\n")  # 1 表示加权图
+            s = ""
             for w, (tail_lst, head_lst) in zip(self.edge_width, self.e2n):
-                s = str(w)
+                s += str(w)
                 for nid in tail_lst + head_lst:
                     s += " " + str(nid + 1)  # nid 需从 1 开始
                 s += "\n"
-                f.write(s)
+            for w, t, h in self.vir_edge:
+                s += f"{w} {t+1} {h+1}\n"
+            f.write(s)
         self.hg_file = dst
 
     def write_dire(self, dst=None):
@@ -294,21 +305,26 @@ class DiHypergraph(Hypergraph):
         print(f"write {dst}")
         with open(dst, "w", encoding="utf-8") as f:
             f.write(f"{self.num_edge} {self.num_node} 1\n")  # 1 表示加权图
+            s = ""
             for w, (tail_lst, head_lst) in zip(self.edge_width, self.e2n):
-                s = str(w)
+                s += str(w)
                 for nid in tail_lst:
                     s += " " + str(nid + 1)  # nid 需从 1 开始
                 s += " -1"
                 for nid in head_lst:
                     s += " " + str(nid + 1)  # nid 需从 1 开始
                 s += "\n"
-                f.write(s)
+            s += "-1\n"
+            for w, t, h in self.vir_edge:
+                s += f"{w} {t+1} -1 {h+1}\n"
+            f.write(s)
         self.hg_src_file = dst
 
     def load_hypergraph(self, hg_file=None):
         if hg_file is None:
             hg_file = self.hg_file
-        e2n_lst = []
+        e2n_list = []
+        vir_edge = []
         edge_width = []
         with open(hg_file, encoding="utf-8") as f:
             num_edge, num_node, _ = f.readline().split()
@@ -316,6 +332,8 @@ class DiHypergraph(Hypergraph):
             for l in f:
                 l = l.split()
                 w = int(l[0])
+                if w == -1:
+                    break
                 tail_lst, head_lst = [], []
                 lst = tail_lst
                 for nid in l[1:]:
@@ -325,13 +343,17 @@ class DiHypergraph(Hypergraph):
                     else:
                         lst.append(nid - 1)  # nid - 1 是因为 .hg 文件中的 nid 从 1 开始
                 edge_width.append(w)
-                e2n_lst.append((tail_lst, head_lst))
+                e2n_list.append((tail_lst, head_lst))
+            for l in f:
+                l = l.split()
+                vir_edge.append([int(l[0]), int(l[1]) - 1, int(l[3]) - 1])
         # initialize
         self.num_edge = num_edge
         self.num_node = num_node
         self.edge_width = edge_width
-        self.e2n = e2n_lst
-        return num_edge, num_node, edge_width, e2n_lst
+        self.e2n = e2n_list
+        self.vir_edge = vir_edge
+        return num_edge, num_node, edge_width, e2n_list
 
     def generate_n2e(self, e2n=None):
         """
@@ -422,7 +444,7 @@ class DiHypergraph(Hypergraph):
                     one_loop_nei.update(nei_nodes)
                 tmp_nei = []  # n_tmp 的邻居中，下次循环需要访问邻居的结点
                 for n2, w in zip(nei_nodes, nei_weight):
-                    w = (w + n1_flow[n_tmp]) / 2**i  # TODO 是否加上 tmp_nei 的权重，感觉是必要的
+                    w = w / 2**i + n1_flow[n_tmp] / 2  # TODO 是否加上 tmp_nei 的权重，感觉是必要的
                     if n2 in n1_flow:  # 此处不将n2添加到tmp_nei中，因为之前访问过n2了
                         w += n1_flow[n2]  # w_self
                         n1_flow[n2] = w
@@ -453,18 +475,112 @@ class DiHypergraph(Hypergraph):
             vir_edge.extend(self._cal_dataflow_one_dire(n1, k, w_thre, False))  # 向后找 k 阶邻居, 此时n1是head
         return vir_edge
 
+    def _cal_dataflow_one_dire2(self, nid, k, w_thre, is_forward):
+        # TODO 数据流具体计算方法还需修改
+        n1_flow = {nid: 0}
+        one_loop_nei = set([nid])  # TODO 是否对一阶邻居添加虚拟边？重复了？
+        q = [nid]
+        for i in range(k):
+            next_neighbors = []  # 下次循环需要访问邻居的结点
+            for n_tmp in q:  # 遍历第i阶邻居
+                nei_nodes, nei_weight = self.find_neighbors(n_tmp, is_forward)
+                if n_tmp == nid:  # 一阶邻居
+                    one_loop_nei.update(nei_nodes)
+                tmp_nei = []  # n_tmp 的邻居中，下次循环需要访问邻居的结点
+                for n2, w in zip(nei_nodes, nei_weight):
+                    w = w / 2**i + n1_flow[n_tmp] / 2  # TODO 是否加上 tmp_nei 的权重，感觉是必要的
+                    if n2 in n1_flow:  # 此处不将n2添加到tmp_nei中，因为之前访问过n2了
+                        w += n1_flow[n2]  # w_self
+                        n1_flow[n2] = w
+                    else:
+                        tmp_nei.append(n2)
+                        n1_flow[n2] = w
+                next_neighbors += tmp_nei
+            q = next_neighbors
+        vir_edge = []
+        for n2, w in n1_flow.items():
+            if w >= w_thre and n2 not in one_loop_nei:
+                if is_forward:
+                    vir_edge.append((int(w), nid, n2))
+                else:
+                    vir_edge.append((int(w), n2, nid))
+        return vir_edge
+
+    def _cal_dataflow_one_dire2(self, nid, k, w_thre, is_forward):
+        # TODO 数据流具体计算方法还需修改
+        n1_flow = {nid: 0}
+        one_loop_nei = set([nid])  # TODO 是否对一阶邻居添加虚拟边？重复了？
+        q = [nid]
+        for i in range(k):
+            next_neighbors = []  # 下次循环需要访问邻居的结点
+            for n_tmp in q:  # 遍历第i阶邻居
+                nei_nodes, nei_weight = self.find_neighbors(n_tmp, is_forward)
+                if n_tmp == nid:  # 一阶邻居
+                    one_loop_nei.update(nei_nodes)
+                tmp_nei = []  # n_tmp 的邻居中，下次循环需要访问邻居的结点
+                for n2, w in zip(nei_nodes, nei_weight):
+                    w = w / 2**i + n1_flow[n_tmp] / 2  # TODO 是否加上 tmp_nei 的权重，感觉是必要的
+                    if n2 in n1_flow:  # 此处不将n2添加到tmp_nei中，因为之前访问过n2了
+                        w += n1_flow[n2]  # w_self
+                        n1_flow[n2] = w
+                    else:
+                        tmp_nei.append(n2)
+                        n1_flow[n2] = w
+                next_neighbors += tmp_nei
+            q = next_neighbors
+        vir_edge = []
+        for n2, w in n1_flow.items():
+            if w >= w_thre and n2 not in one_loop_nei:
+                if is_forward:
+                    vir_edge.append((int(w), nid, n2))
+                else:
+                    vir_edge.append((int(w), n2, nid))
+        return vir_edge
+
+    def cal_dataflow2(self, k=3, w_thre=5):
+        """
+        k: 到k阶邻居为止
+        w_thre: 小于 w_thre 的 width，不再继续寻找其邻居
+        """
+        # 每个点寻找其邻居
+        # vir_edge = [ (dataflow, n1, n2), ...], n1: tail, n2: head
+        vir_edge = dict()
+        for n1 in range(self.num_node):
+            new_edge_tail = self._cal_dataflow_one_dire2(n1, k, w_thre, True)
+            new_edge_head = self._cal_dataflow_one_dire2(n1, k, w_thre, False)
+            vir_edge.update(
+                {
+                    (t, h): w
+                    for w, t, h in new_edge_tail + new_edge_head
+                    if not ((t, h) in vir_edge and w < vir_edge[(t, h)])
+                }
+            )
+        vir_edge = [(w, t, h) for (t, h), w in vir_edge.items()]
+        return vir_edge
+
     def add_vir_edge(self, vir_edge: list):
-        for i, (w, n1, n2) in enumerate(vir_edge):
-            self.edge_width.append(w)
-            self.e2n.append(([n1], [n2]))
-            eid = i + self.num_edge
-            self.n2e[n1][0].append(eid)
-            self.n2e[n2][1].append(eid)
+        # for i, (w, n1, n2) in enumerate(vir_edge):
+        #     self.edge_width.append(w)
+        #     self.e2n.append(([n1], [n2]))
+        #     eid = i + self.num_edge
+        #     self.n2e[n1][0].append(eid)
+        #     self.n2e[n2][1].append(eid)
+        self.vir_edge = copy.deepcopy(vir_edge)
         self.num_edge += len(vir_edge)
 
-    def dataflow_improve(self):
+    def dataflow_improve(self, new_dataflow=False):
+        """
+        new_dataflow: 是否不使用历史记录，重新计算
+        """
         print(f"dataflow_improve {self.hg_file}")
-        vir_edge = self.cal_dataflow()
+        vir_edge_file = os.path.join(self.design_pth, "vir_edge.bin")
+        if os.path.exists(vir_edge_file) and not new_dataflow:
+            with open(vir_edge_file, "rb") as f:
+                vir_edge = pk.load(f)
+        else:
+            vir_edge = self.cal_dataflow2(k=3)
+            with open(vir_edge_file, "wb") as f:
+                f.write(vir_edge)
         self.add_vir_edge(vir_edge)
         vir_file = self.hg_src_file.replace(".hg", ".vir")
         self.write_dire(vir_file)
@@ -556,11 +672,21 @@ def check(n1, n2, hg: DiHypergraph):  #! 此函数在当前改为有向超图后
 
 
 if __name__ == "__main__":
-    # hg = hypergraph()
-    # hg.read_from_file("res/ispd2005/hypergraph/adaptec1.hg")
-    # all_max_edge([hg])
-    hg_lst = read_benchmark("ispd2005")
-    print("\nstart all max edge")
-    # all_max_edge(hg_lst)
-    print("\nstart add virtual edge")
-    add_all_vir_edge(hg_lst)
+    import jstyleson
+
+    benchmark = "simple"
+    b_pth = os.path.join("res", benchmark)
+    os.system(f"mkdir -p {b_pth}")
+    config_file = os.path.join("par_config", benchmark, "config.json")
+    with open(config_file, encoding="utf-8") as f:
+        config = jstyleson.load(f)
+
+    design_lst = config["design"]
+    for design in design_lst:
+        design_pth = os.path.join(b_pth, design)
+        os.system(f"mkdir -p {design_pth}")
+        hg = DiHypergraph()
+        hg_file = os.path.join(design_pth, design + ".vir" + ".dire")
+        hg_ori_file = os.path.join(design_pth, design + ".hg" + ".dire")
+        hg.read_from_file(hg_ori_file)
+        hg.dataflow_improve()
