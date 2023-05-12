@@ -147,6 +147,6 @@ if __name__ == "__main__":
     config_file = os.path.join("par_config", benchmark, "config.json")
     with open(config_file, encoding="utf-8") as f:
         config = jstyleson.load(f)
-    num_thread = 4
-    run_once(benchmark, b_pth, config, use_vir=False, is_vis=True, n=num_thread)
-    # run_once(benchmark, b_pth, config, use_vir=True, is_vis=True, n=num_thread)
+    num_thread = 8
+    # run_once(benchmark, b_pth, config, use_vir=False, is_vis=True, n=num_thread)
+    run_once(benchmark, b_pth, config, use_vir=True, is_vis=True, n=num_thread)
