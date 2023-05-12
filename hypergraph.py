@@ -501,12 +501,13 @@ class DiHypergraph(Hypergraph):
         for n2, w in n1_flow.items():
             if w >= w_thre and n2 not in one_loop_nei:
                 if is_forward:
-                    vir_edge.append((int(w), nid, n2))
+                    vir_edge.append([int(w), nid, n2])
                 else:
-                    vir_edge.append((int(w), n2, nid))
+                    vir_edge.append([int(w), n2, nid])
         return vir_edge
 
     def _cal_dataflow_one_dire2(self, nid, k, w_thre, is_forward):
+        """放宽约束"""
         # TODO 数据流具体计算方法还需修改
         n1_flow = {nid: 0}
         one_loop_nei = set([nid])  # TODO 是否对一阶邻居添加虚拟边？重复了？
@@ -539,6 +540,7 @@ class DiHypergraph(Hypergraph):
 
     def cal_dataflow2(self, k=3, w_thre=5):
         """
+        放宽约束
         k: 到k阶邻居为止
         w_thre: 小于 w_thre 的 width，不再继续寻找其邻居
         """
@@ -555,7 +557,7 @@ class DiHypergraph(Hypergraph):
                     if not ((t, h) in vir_edge and w < vir_edge[(t, h)])
                 }
             )
-        vir_edge = [(w, t, h) for (t, h), w in vir_edge.items()]
+        vir_edge = [[w, t, h] for (t, h), w in vir_edge.items()]
         return vir_edge
 
     def add_vir_edge(self, vir_edge: list):
@@ -573,14 +575,14 @@ class DiHypergraph(Hypergraph):
         new_dataflow: 是否不使用历史记录，重新计算
         """
         print(f"dataflow_improve {self.hg_file}")
-        vir_edge_file = os.path.join(self.design_pth, "vir_edge.bin")
+        vir_edge_file = os.path.join(self.design_pth, "vir_edge.enlarge.bin")
         if os.path.exists(vir_edge_file) and not new_dataflow:
             with open(vir_edge_file, "rb") as f:
                 vir_edge = pk.load(f)
         else:
             vir_edge = self.cal_dataflow2(k=3)
             with open(vir_edge_file, "wb") as f:
-                f.write(vir_edge)
+                pk.dump(vir_edge, f)
         self.add_vir_edge(vir_edge)
         vir_file = self.hg_src_file.replace(".hg", ".vir")
         self.write_dire(vir_file)

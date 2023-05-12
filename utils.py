@@ -186,9 +186,14 @@ def generate_benchmark_dict(benchmark, method):
 
 
 def analysis_stats(res: str):
-    res = res.split("\n")[-3:-1]
-    run_time = float(res[0].split(":")[-1].replace("sec", ""))
-    io_time = float(res[1].split(":")[-1].replace("sec", ""))
+    # res = res.split("\n")[-3:-1]
+    # run_time = float(res[0].split(":")[-1].replace("sec", ""))
+    # io_time = float(res[1].split(":")[-1].replace("sec", ""))
+    res = res[res.find("Partition time") :]
+    res = res[: res.find("\n")]
+    _, run_time = res.split("=")
+    run_time = float(run_time.replace("s",''))
+    io_time = -1
     return run_time, io_time
 
 
