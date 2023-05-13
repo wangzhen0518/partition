@@ -14,7 +14,7 @@ from dreamplace.PlaceDB import PlaceDB
 pl_ext = "gp"  # gp or ntup
 
 
-def load_design(benchmark, design, b_pth, use_vir=True, new_hg=False):
+def load_design(benchmark, design, b_pth, m_type, use_vir=True, new_hg=False):
     print(design)
     hg_ext = ".vir" if use_vir else ".hg"
     design_pth = os.path.join(b_pth, design)
@@ -34,7 +34,7 @@ def load_design(benchmark, design, b_pth, use_vir=True, new_hg=False):
         # 如果使用 virtual edge, 并且 .vir 存在, 那么上一个 if 已经读过文件
         # 所以此处为使用 virtual edge, 但是 .vir 文件不存在, 应生成 .vir 文件
         if use_vir:
-            hg.dataflow_improve()
+            hg.dataflow_improve(m_type)
     pl_file = os.path.join(design_pth, design + f".{pl_ext}.pl")
     hg.read_pl(pl_file)
     return hg
@@ -56,8 +56,8 @@ def run_partition(hg: DiHypergraph, k, ubf, result_pth, use_vir=True, is_vis=Fal
             with open(par_file + ".res", encoding="utf-8") as f:
                 res = f.read()
         else:
-            # cmd = f"shmetis {hg.hg_file} {k} {ubf}"
-            cmd=f'KaHyPar -h {hg.hg_file} -k {k} -e {ubf} -o km1 -m direct -p ./kahypar_config/km1_kKaHyPar_sea20.ini -w 1'
+            # cmd = f"KaHyPar {hg.hg_file} {k} {ubf}"
+            cmd = f"KaHyPar -h {hg.hg_file} -k {k} -e {ubf} -o km1 -m direct -p ./kahypar_config/km1_kKaHyPar_sea20.ini -w 1"
             print(i, cmd)
             status, res = subprocess.getstatusoutput(cmd)
             if status == 0:
@@ -97,7 +97,7 @@ def run_partition(hg: DiHypergraph, k, ubf, result_pth, use_vir=True, is_vis=Fal
     }
 
 
-def run_once(benchmark, b_pth, config, use_vir, is_vis, n=8):
+def run_once(benchmark, b_pth, config, m_type, use_vir, is_vis, n=8):
     # 读入 hypergraph
     print("read hypergraph")
     task_lst = []
@@ -107,7 +107,7 @@ def run_once(benchmark, b_pth, config, use_vir, is_vis, n=8):
     for design in design_lst:
         # hg = load_design(benchmark, design, b_pth, use_vir)
         # hg_lst.append(hg)
-        task_lst.append(pool.apply_async(load_design, args=(benchmark, design, b_pth, use_vir, True)))
+        task_lst.append(pool.apply_async(load_design, args=(benchmark, design, b_pth, m_type, use_vir, True)))
     pool.close()
     pool.join()
     for task in task_lst:
@@ -118,12 +118,12 @@ def run_once(benchmark, b_pth, config, use_vir, is_vis, n=8):
     pool = Pool(n)
     task_lst = []
     stat_dict = dict()
-    ubf = config["shmetis"]["UBfactor"][0]
+    ubf = config["KaHyPar"]["UBfactor"][0]
     for hg in hg_lst:
         hg: DiHypergraph
-        result_pth = os.path.join(hg.design_pth, "KaHyPar")
+        result_pth = os.path.join(hg.design_pth, m_type)
         os.system(f"mkdir -p {result_pth}")
-        for k in config["shmetis"]["k"]:
+        for k in config["KaHyPar"]["k"]:
             # stat_key, stat_info = run_partition(hg, k, ubf, method_pth, use_vir, is_vis)
             # stat_dict[stat_key] = stat_info
 
@@ -136,7 +136,7 @@ def run_once(benchmark, b_pth, config, use_vir, is_vis, n=8):
 
     print("conclude")
     hg_ext = "vir" if use_vir else "hg"
-    conclude_file = os.path.join(b_pth, f"conclude.{hg_ext}.KaHyPar.json")
+    conclude_file = os.path.join(b_pth, f"conclude.{hg_ext}.{m_type}.KaHyPar.json")
     print(conclude_file)
     # if not os.path.exists(conclude_file):
     with open(conclude_file, "w", encoding="utf-8") as f:
@@ -151,5 +151,8 @@ if __name__ == "__main__":
     with open(config_file, encoding="utf-8") as f:
         config = jstyleson.load(f)
     num_thread = 8
-    # run_once(benchmark, b_pth, config, use_vir=False, is_vis=True, n=num_thread)
-    run_once(benchmark, b_pth, config, use_vir=True, is_vis=True, n=num_thread)
+
+    run_once(benchmark, b_pth, config, "base", use_vir=True, is_vis=True, n=num_thread)
+    run_once(benchmark, b_pth, config, "enlarge", use_vir=True, is_vis=True, n=num_thread)
+    run_once(benchmark, b_pth, config, "shrink", use_vir=True, is_vis=True, n=num_thread)
+    run_once(benchmark, b_pth, config, "origin", use_vir=False, is_vis=True, n=num_thread)

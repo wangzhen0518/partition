@@ -11,6 +11,7 @@ configure.*
 # test.*
 *.svg
 # *.png
+*.log
 
 .vscode/
 __pycache__/

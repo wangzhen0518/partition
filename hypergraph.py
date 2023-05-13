@@ -570,12 +570,14 @@ class DiHypergraph(Hypergraph):
         self.vir_edge = copy.deepcopy(vir_edge)
         self.num_edge += len(vir_edge)
 
-    def dataflow_improve(self, new_dataflow=False):
+    def dataflow_improve(self, m_type, new_dataflow=False):
         """
         new_dataflow: 是否不使用历史记录，重新计算
         """
         print(f"dataflow_improve {self.hg_file}")
-        vir_edge_file = os.path.join(self.design_pth, "vir_edge.enlarge.bin")
+        vir_edge_file = os.path.join(
+            self.design_pth, "vir_edge.bin" if m_type == "base" else f"vir_edge.{m_type}.bin"
+        )
         if os.path.exists(vir_edge_file) and not new_dataflow:
             with open(vir_edge_file, "rb") as f:
                 vir_edge = pk.load(f)

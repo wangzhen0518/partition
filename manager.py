@@ -178,7 +178,7 @@ def plot_cmp(cmp_lst, idx_lst, type):
         weight="bold",
     )
     print(idx_r)
-    fig.savefig(f"res/ispd2005/conclude.KaHyPar.{type}.png", dpi=300)
+    fig.savefig(f"res/ispd2005/conclude.{type}.shrink.KaHyPar.png", dpi=300)
     plt.close(fig)
     # print(idx_lst)
 
@@ -237,14 +237,14 @@ def test_HPWL():
 
 if __name__ == "__main__":
     type = "k"  # 'k' or 'g', k 表示按照切分数量优先, g 表示按照图有限
-    vir_gp_conclude = "res/ispd2005/conclude.vir.gp.KaHyPar.json"
-    hg_gp_conclude = "res/ispd2005/conclude.hg.gp.KaHyPar.json"
+    vir_gp_conclude = "res/ispd2005/conclude.vir.shrink.KaHyPar.json"
+    hg_gp_conclude = "res/ispd2005/conclude.hg.origin.KaHyPar.json"
     idx_lst, k_lst, cmp_gp_lst = compare(vir_gp_conclude, hg_gp_conclude, type)
     plot_cmp(cmp_gp_lst, idx_lst, type)
 
-    benchmark = "ispd2005"
-    config_file = os.path.join("par_config", benchmark, "config.json")
-    with open(config_file, encoding="utf-8") as f:
-        config = jstyleson.load(f)
-    plot_improve(config["design"])
+    # benchmark = "ispd2005"
+    # config_file = os.path.join("par_config", benchmark, "config.json")
+    # with open(config_file, encoding="utf-8") as f:
+    #     config = jstyleson.load(f)
+    # plot_improve(config["design"])
     # test_HPWL()
