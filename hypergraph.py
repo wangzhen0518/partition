@@ -249,6 +249,8 @@ class DiHypergraph(Hypergraph):
 
     def read_from_db(self, placedb: PlaceDB):
         # 遍历 placedb.net2pin_map, placedb.net_weights
+        #TODO 对于只连接了1个点的边，应该如何处理
+        #TODO 如果删除只连接了1个点的边，之后产生了没有连接边的点，应该如何处理
         num_node = placedb.num_physical_nodes
         num_edge = placedb.num_nets
         e2n_lst = []
@@ -570,12 +572,14 @@ class DiHypergraph(Hypergraph):
         self.vir_edge = copy.deepcopy(vir_edge)
         self.num_edge += len(vir_edge)
 
-    def dataflow_improve(self, new_dataflow=False):
+    def dataflow_improve(self, m_type, new_dataflow=False):
         """
         new_dataflow: 是否不使用历史记录，重新计算
         """
         print(f"dataflow_improve {self.hg_file}")
-        vir_edge_file = os.path.join(self.design_pth, "vir_edge.enlarge.bin")
+        vir_edge_file = os.path.join(
+            self.design_pth, "vir_edge.bin" if m_type == "base" else f"vir_edge.{m_type}.bin"
+        )
         if os.path.exists(vir_edge_file) and not new_dataflow:
             with open(vir_edge_file, "rb") as f:
                 vir_edge = pk.load(f)
@@ -584,7 +588,7 @@ class DiHypergraph(Hypergraph):
             with open(vir_edge_file, "wb") as f:
                 pk.dump(vir_edge, f)
         self.add_vir_edge(vir_edge)
-        vir_file = self.hg_src_file.replace(".hg", ".vir")
+        vir_file = self.hg_src_file.replace(".hg", f".{m_type}.vir")
         self.write_dire(vir_file)
         self.write(vir_file.replace(".dire", ""))
 

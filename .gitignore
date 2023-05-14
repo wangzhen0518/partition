@@ -8,9 +8,10 @@ dreamplace.egg-info
 # *dist*
 *.so
 configure.*
-# test.*
+test.*
 *.svg
 # *.png
+*.log
 
 .vscode/
 __pycache__/

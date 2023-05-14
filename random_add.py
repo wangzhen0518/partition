@@ -55,7 +55,7 @@ def par_one_file(hg: DiHypergraph, res_path, eta):
     res_name = os.path.basename(hg_file).replace(".vir", "")
 
     par_file_ori = hg_file + f".part.{k}"
-    run_time_list, io_time_list, val_list = [], [], []
+    run_time_list, val_list = [], []
     for i in range(10):
         print(f"{i} shmetis {hg_file} {k} 2")
         status, res = subprocess.getstatusoutput(f"shmetis {hg_file} {k} 2")
@@ -66,28 +66,25 @@ def par_one_file(hg: DiHypergraph, res_path, eta):
             with open(res_file, "w", encoding="utf8") as f:
                 f.write(res)
 
-            run_time, io_time = analysis_stats(res)
+            run_time = analysis_stats(res)
             par = load_par(par_file)
             par_dict = generate_par(par, hg.pl)
             val, _ = eval_par(par_dict)
             run_time_list.append(run_time)
-            io_time_list.append(io_time)
             val_list.append(val)
 
             stat_file = par_file + ".stat"
             with open(stat_file, "w", encoding="utf8") as f:
-                f.write(f"{eta:.4f} {run_time:.4f} {io_time:.4f} {val:.4f}\n")
+                f.write(f"{eta:.4f} {run_time:.4f}{val:.4f}\n")
         else:
             print(f"{i}: {eta}\n{res}")
     stat_key = res_name
     val = np.average(val_list)
     run_time = np.average(run_time_list)
-    io_time = np.average(io_time_list)
     return stat_key, {
         "eta": eta,
         "value": val,
         "run_time": run_time,
-        "io_time": io_time,
     }
 
 

@@ -9,8 +9,12 @@
     "adaptec2",
     "adaptec1"
   ],
+  "KaHyPar": {
+    "k": [2, 50, 500, 1024],
+    "UBfactor": [0.03]
+  },
   "shmetis": {
     "k": [500],
-    "UBfactor": [0.03]
+    "UBfactor": [2]
   }
 }
