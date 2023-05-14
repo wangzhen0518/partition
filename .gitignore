@@ -8,7 +8,7 @@ dreamplace.egg-info
 # *dist*
 *.so
 configure.*
-# test.*
+test.*
 *.svg
 # *.png
 *.log

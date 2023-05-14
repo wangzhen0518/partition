@@ -10,7 +10,7 @@
     "adaptec1"
   ],
   "KaHyPar": {
-    "k": [500],
+    "k": [2, 50, 500, 1024],
     "UBfactor": [0.03]
   },
   "shmetis": {

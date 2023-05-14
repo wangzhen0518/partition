@@ -193,11 +193,13 @@ def analysis_stats(res: str):
     res = res[: res.find("\n")]
     _, run_time = res.split("=")
     run_time = float(run_time.replace("s",''))
-    io_time = -1
-    return run_time, io_time
+    return run_time
 
 
 def draw_density(hg):
+    '''
+    绘制超图加边前后每个点权重比较
+    '''
     node_list = np.array(range(hg.num_node))
     weight = np.zeros(shape=(hg.num_node, 2))  # 第一位是算上虚拟边的总权重，第二位不算
     for i, (tail_list, head_list) in enumerate(hg.n2e):

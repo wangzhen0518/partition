@@ -41,59 +41,44 @@ def load_design(benchmark, design, b_pth, m_type, use_vir=True, new_hg=False):
 
 
 def run_partition(hg: DiHypergraph, k, ubf, result_pth, use_vir=True, is_vis=False, new_par=False):
-    N = 10
     hg_ext = "vir" if use_vir else "hg"
-    val_list = []
-    hpwl_list = []
-    run_time_list = []
-    io_time_list = []
-    for i in range(N):
-        par_file = os.path.join(result_pth, hg.design + f".{hg_ext}.{k}.{i}")
-        res_file = par_file + ".res"
-        # 处理运行结果
-        if os.path.exists(par_file) and os.path.exists(res_file) and not new_par:
-            print(f"{par_file}.res exists")
-            with open(par_file + ".res", encoding="utf-8") as f:
-                res = f.read()
+    par_file = os.path.join(result_pth, hg.design + f".{hg_ext}.{k}")
+    res_file = par_file + ".res"
+    # 处理运行结果
+    if os.path.exists(par_file) and os.path.exists(res_file) and not new_par:
+        print(f"{par_file}.res exists")
+        with open(par_file + ".res", encoding="utf-8") as f:
+            res = f.read()
+    else:
+        # cmd = f"KaHyPar {hg.hg_file} {k} {ubf}"
+        cmd = f"KaHyPar -h {hg.hg_file} -k {k} -e {ubf} -o km1 -m direct -p ./kahypar_config/km1_kKaHyPar_sea20.ini -w 1"
+        print(cmd)
+        status, res = subprocess.getstatusoutput(cmd)
+        if status == 0:
+            # subprocess.getstatusoutput(f"mv {hg.hg_file}.part.{k} {par_file}")
+            subprocess.getstatusoutput(f"mv {hg.hg_file}.part{k}.epsilon{ubf}.seed-1.KaHyPar {par_file}")
+            with open(par_file + ".res", "w", encoding="utf-8") as f:
+                f.write(res)
         else:
-            # cmd = f"KaHyPar {hg.hg_file} {k} {ubf}"
-            cmd = f"KaHyPar -h {hg.hg_file} -k {k} -e {ubf} -o km1 -m direct -p ./kahypar_config/km1_kKaHyPar_sea20.ini -w 1"
-            print(i, cmd)
-            status, res = subprocess.getstatusoutput(cmd)
-            if status == 0:
-                # subprocess.getstatusoutput(f"mv {hg.hg_file}.part.{k} {par_file}")
-                subprocess.getstatusoutput(f"mv {hg.hg_file}.part{k}.epsilon{ubf}.seed-1.KaHyPar {par_file}")
-                with open(par_file + ".res", "w", encoding="utf-8") as f:
-                    f.write(res)
-            else:
-                print(f"{i}: {hg.hg_file}\tError {res}")
-                continue
-        # 处理统计信息
-        run_time, io_time = analysis_stats(res)
-        par_list = load_par(par_file)
-        par_dict = generate_par(par_list, hg.pl)
-        val, _ = eval_par(par_dict)
-        hpwl, _ = eval_par_HPWL(par_list, hg)
-        run_time_list.append(run_time)
-        io_time_list.append(io_time)
-        val_list.append(val)
-        hpwl_list.append(hpwl)
-        # 生成可视化图片
-        if is_vis:
-            vis_file = par_file + f".{pl_ext}.png"
-            plot_pl_with_par(par_dict, vis_file)
+            raise RuntimeError(f"{hg.hg_file}\tError {res}")
+    # 处理统计信息
+    run_time = analysis_stats(res)
+    par_list = load_par(par_file)
+    par_dict = generate_par(par_list, hg.pl)
+    val, val_list = eval_par(par_dict)
+    hpwl, hpwl_list = eval_par_HPWL(par_list, hg)
+    # 生成可视化图片
+    if is_vis:
+        vis_file = par_file + f".{pl_ext}.png"
+        plot_pl_with_par(par_dict, vis_file)
     stat_key = hg.design + f".{k}"
-    best_idx = int(np.argmin(val_list))
-    val = np.average(val_list)
-    hpwl = np.average(hpwl_list)
-    run_time = np.average(run_time_list)
-    io_time = np.average(io_time_list)
     return stat_key, {
         "value": val,
+        "value_list": val_list,
         "hpwl": hpwl,
+        "ncut": len(hpwl_list),
+        # "hpwl_list": hpwl_list,
         "run_time": run_time,
-        "io_time": io_time,
-        "best": best_idx,
     }
 
 
@@ -136,7 +121,7 @@ def run_once(benchmark, b_pth, config, m_type, use_vir, is_vis, n=8):
 
     print("conclude")
     hg_ext = "vir" if use_vir else "hg"
-    conclude_file = os.path.join(b_pth, f"conclude.{hg_ext}.{m_type}.KaHyPar.json")
+    conclude_file = os.path.join(b_pth, f"conclude.{hg_ext}.{m_type}.json")
     print(conclude_file)
     # if not os.path.exists(conclude_file):
     with open(conclude_file, "w", encoding="utf-8") as f:
@@ -152,7 +137,9 @@ if __name__ == "__main__":
         config = jstyleson.load(f)
     num_thread = 8
 
-    run_once(benchmark, b_pth, config, "base", use_vir=True, is_vis=True, n=num_thread)
-    run_once(benchmark, b_pth, config, "enlarge", use_vir=True, is_vis=True, n=num_thread)
-    run_once(benchmark, b_pth, config, "shrink", use_vir=True, is_vis=True, n=num_thread)
+    # run_once(benchmark, b_pth, config, "base", use_vir=True, is_vis=True, n=num_thread)
+    # run_once(benchmark, b_pth, config, "enlarge", use_vir=True, is_vis=True, n=num_thread)
+    # run_once(benchmark, b_pth, config, "shrink", use_vir=True, is_vis=True, n=num_thread)
+    # run_once(benchmark, b_pth, config, "enlarge10000", use_vir=True, is_vis=True, n=num_thread)
+    # run_once(benchmark, b_pth, config, "shrink1", use_vir=True, is_vis=True, n=num_thread)
     run_once(benchmark, b_pth, config, "origin", use_vir=False, is_vis=True, n=num_thread)

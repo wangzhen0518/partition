@@ -249,6 +249,8 @@ class DiHypergraph(Hypergraph):
 
     def read_from_db(self, placedb: PlaceDB):
         # 遍历 placedb.net2pin_map, placedb.net_weights
+        #TODO 对于只连接了1个点的边，应该如何处理
+        #TODO 如果删除只连接了1个点的边，之后产生了没有连接边的点，应该如何处理
         num_node = placedb.num_physical_nodes
         num_edge = placedb.num_nets
         e2n_lst = []
@@ -586,7 +588,7 @@ class DiHypergraph(Hypergraph):
             with open(vir_edge_file, "wb") as f:
                 pk.dump(vir_edge, f)
         self.add_vir_edge(vir_edge)
-        vir_file = self.hg_src_file.replace(".hg", ".vir")
+        vir_file = self.hg_src_file.replace(".hg", f".{m_type}.vir")
         self.write_dire(vir_file)
         self.write(vir_file.replace(".dire", ""))
 
