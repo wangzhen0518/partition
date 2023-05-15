@@ -76,24 +76,31 @@ def num_value(design):
 
     print("plot conclude")
     base_dict = get_baseline()
-    val_base = base_dict[design]["value"][k]
-    hpwl_base = base_dict[design]["hpwl"][k]
+    # val_base = base_dict[design]["value"][k]
+    # hpwl_base = base_dict[design]["hpwl"][k]
+    # ncut_base = base_dict[design]["ncut"][k]
+    base_name = design + f".{k}"
+    val_base = base_dict[base_name]["value"]
+    hpwl_base = base_dict[base_name]["hpwl"]
+    ncut_base = base_dict[base_name]["ncut"]
     res_pic_name = f"res/ispd2005/{design}/num/conclude"
-    plot_conclude(stat_dict, res_pic_name, val_base, hpwl_base)
+    plot_conclude(stat_dict, res_pic_name, val_base, hpwl_base, ncut_base)
 
 
 def get_baseline():
     base_file = os.path.join("res", "ispd2005", "conclude.hg.origin.json")
     with open(base_file, "r", encoding="utf-8") as f:
         baseline = jstyleson.load(f)
-    base_dict = dict()
-    for instance, conclude_info in baseline.items():
-        design, k = instance.split(".")
-        k = int(k)
-        if design not in base_dict:
-            base_dict[design] = {"value": {}, "hpwl": {}}
-        base_dict[design]["value"][k] = conclude_info["value"]
-        base_dict[design]["hpwl"][k] = conclude_info["hpwl"]
+    # base_dict = dict()
+    # for instance, conclude_info in baseline.items():
+    #     design, k = instance.split(".")
+    #     k = int(k)
+    #     if design not in base_dict:
+    #         base_dict[design] = {"value": {}, "hpwl": {}}
+    #     base_dict[design]["value"][k] = conclude_info["value"]
+    #     base_dict[design]["hpwl"][k] = conclude_info["hpwl"]
+    #     base_dict[design]["ncut"][k] = conclude_info["ncut"]
+    base_dict = baseline
     return base_dict
 
 
@@ -116,7 +123,7 @@ def run_and_conclude(
         p = Pool(n)
         task_list = []
         for hgi, etai in zip(hg_list, eta):
-            task_list.append(p.apply_async(par_one_file, (hgi, res_path, etai, False)))
+            task_list.append(p.apply_async(par_one_file, (hgi, res_path, etai, True)))
         p.close()
         p.join()
         print("start conclude")
@@ -132,16 +139,18 @@ def run_and_conclude(
 
 def generate_one_hg(hg, etai, vir_file, vir_edge, density_func):
     # generate hgi
-    hgi = copy.deepcopy(hg)
+    hgi = DiHypergraph()
     if not os.path.exists(vir_file):
         N = int(len(vir_edge) * etai)
         vir_edge_i = random.sample(vir_edge, k=N)
         # vir_edge_i.sort()
+        hgi = copy.deepcopy(hg)
         hgi.add_vir_edge(vir_edge_i)
         hgi.write_dire(vir_file)
         hgi.write(vir_file.replace(".dire", ""))
     else:
         hgi.read_from_file(vir_file)
+        hgi.pl = copy.deepcopy(hg.pl)
     if density_func:
         density_func(hgi)
     return etai, hgi
@@ -153,7 +162,7 @@ def dataflow_improve_eta(hg: DiHypergraph, res_path, eta=[1.0], n=4, density_fun
     """
     print(f"dataflow_improve {hg.hg_src_file}")
     # get vir_edge
-    vir_edge_file = os.path.join(res_path, "vir_edge.bin")
+    vir_edge_file = os.path.join(res_path, "vir_edge.shrink1.bin")
     if os.path.exists(vir_edge_file):
         with open(vir_edge_file, "rb") as f:
             vir_edge = pk.load(f)
@@ -184,7 +193,7 @@ def par_one_file(hg: DiHypergraph, res_path, eta, new_par=False):
     切分特定的一个超图
     """
     hg_file = hg.hg_file
-    print(hg_file, eta)
+    # print(hg_file, eta)
     res_name = os.path.basename(hg_file).replace(".vir", "")
 
     par_file_ori = f"{hg_file}.part{k}.epsilon0.03.seed-1.KaHyPar"
@@ -196,7 +205,7 @@ def par_one_file(hg: DiHypergraph, res_path, eta, new_par=False):
             res = f.read()
     else:
         cmd = f"KaHyPar -h {hg_file} -k {k} -e 0.03 -o km1 -m direct -p ./kahypar_config/km1_kKaHyPar_sea20.ini -w 1"
-        print(cmd)
+        print(eta, cmd)
         status, res = subprocess.getstatusoutput(cmd)
         if status == 0:
             subprocess.getstatusoutput(f"mv {par_file_ori} {par_file}")
@@ -242,19 +251,18 @@ def par_one_file(hg: DiHypergraph, res_path, eta, new_par=False):
 #         plot_pl_with_par(par_dict, pic)
 
 
-def plot_conclude(stat_dict, res_pic_name, val_base=None, hpwl_base=None):
+def plot_conclude(stat_dict, res_pic_name, val_base, hpwl_base, ncut_base):
     """
     统计切分结果，并可视化
     """
-    eval_list = [(v["eta"], v["value"], v["hpwl"]) for v in stat_dict.values()]
+    eval_list = [(v["eta"], v["value"], v["hpwl"], v["ncut"]) for v in stat_dict.values()]
     eval_list.sort()
-    if val_base is None:
-        val_base = eval_list[0][1]
-    eta, val, hpwl = [], [], []
-    for etai, vali, hpwli in eval_list:
+    eta, val, hpwl, ncut = [], [], [], []
+    for etai, vali, hpwli, ncuti in eval_list:
         eta.append(etai)
         val.append((vali - val_base) / val_base if val_base else vali)
         hpwl.append(-(hpwli - hpwl_base) / hpwl_base if hpwl_base else hpwli)
+        ncut.append((ncuti - ncut_base) / ncut_base if hpwl_base else hpwli)
 
     fig, ax = plt.subplots()
     # plot value
@@ -282,6 +290,19 @@ def plot_conclude(stat_dict, res_pic_name, val_base=None, hpwl_base=None):
     ax2.scatter(eta, hpwl, c="r")
     fig2.savefig(res_pic_name + ".hpwl.png", dpi=300)
     plt.close(fig2)
+
+    # plot ncut
+    fig3, ax3 = plt.subplots()
+    ax3.set_ylabel(
+        r"$\frac{ncut_{vir}-ncut_{hg}}{ncut_{hg}}$",
+        fontdict={"size": 16},
+        rotation=0,
+        loc="top",
+        labelpad=-90,
+    )
+    ax3.scatter(eta, ncut, c="c")
+    fig3.savefig(res_pic_name + ".ncut.png", dpi=300)
+    plt.close(fig3)
 
 
 def run_all():
