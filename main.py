@@ -16,16 +16,20 @@ pl_ext = "gp"  # gp or ntup
 
 def load_design(benchmark, design, b_pth, m_type, use_vir=True, new_hg=False):
     print(design)
-    hg_ext = ".vir" if use_vir else ".hg"
+    hg_ext = "vir" if use_vir else "hg"
     design_pth = os.path.join(b_pth, design)
     os.system(f"mkdir -p {design_pth}")
     hg = DiHypergraph()
-    hg_file = os.path.join(design_pth, design + hg_ext + ".dire")
+    pl_file = os.path.join(design_pth, design + f".{pl_ext}.pl")
+    hg.read_pl(pl_file)
+    # hg_file = os.path.join(design_pth, design + f".{hg_ext}.dire")
+    hg_file = os.path.join(design_pth, design + f".hpwl.{hg_ext}.dire")
     if os.path.exists(hg_file) and not new_hg:
         hg.read_from_file(hg_file)
     else:
         # 无论是否使用 virtual edge, 都需要确保 .hg 文件存在
-        hg_ori_file = os.path.join(design_pth, design + ".hg" + ".dire")
+        # hg_ori_file = os.path.join(design_pth, design + ".hg.dire")
+        hg_ori_file = os.path.join(design_pth, design + ".hpwl.hg.dire")
         if not os.path.exists(hg_ori_file):
             pl_config = os.path.join("pl_config", benchmark, design + ".json")
             hg.build_from_config(pl_config, hg_ori_file)
@@ -35,14 +39,12 @@ def load_design(benchmark, design, b_pth, m_type, use_vir=True, new_hg=False):
         # 所以此处为使用 virtual edge, 但是 .vir 文件不存在, 应生成 .vir 文件
         if use_vir:
             hg.dataflow_improve(m_type)
-    pl_file = os.path.join(design_pth, design + f".{pl_ext}.pl")
-    hg.read_pl(pl_file)
     return hg
 
 
 def run_partition(hg: DiHypergraph, k, ubf, result_pth, use_vir=True, is_vis=False, new_par=False):
     hg_ext = "vir" if use_vir else "hg"
-    par_file = os.path.join(result_pth, hg.design + f".{hg_ext}.{k}")
+    par_file = os.path.join(result_pth, os.path.basename(hg.hg_file) + f".{k}")
     res_file = par_file + ".res"
     # 处理运行结果
     if os.path.exists(par_file) and os.path.exists(res_file) and not new_par:
@@ -98,6 +100,7 @@ def run_once(benchmark, b_pth, config, m_type, use_vir, is_vis, n=8):
     for task in task_lst:
         hg = task.get()
         hg_lst.append(hg)
+
     # TODO 改成管道/生产者-消费者形式，使 partition 不等待 hg 全部生成完
     print("start partition")
     pool = Pool(n)
@@ -112,7 +115,9 @@ def run_once(benchmark, b_pth, config, m_type, use_vir, is_vis, n=8):
             # stat_key, stat_info = run_partition(hg, k, ubf, method_pth, use_vir, is_vis)
             # stat_dict[stat_key] = stat_info
 
-            task_lst.append(pool.apply_async(run_partition, args=(hg, k, ubf, result_pth, use_vir, is_vis)))
+            task_lst.append(
+                pool.apply_async(run_partition, args=(hg, k, ubf, result_pth, use_vir, is_vis, True))
+            )
     pool.close()
     pool.join()
     for task in task_lst:
@@ -137,9 +142,10 @@ if __name__ == "__main__":
         config = jstyleson.load(f)
     num_thread = 8
 
+    # run_once(benchmark, b_pth, config, "origin", use_vir=False, is_vis=True, n=num_thread)
+    run_once(benchmark, b_pth, config, "hpwl", use_vir=False, is_vis=True, n=num_thread)
     # run_once(benchmark, b_pth, config, "base", use_vir=True, is_vis=True, n=num_thread)
     # run_once(benchmark, b_pth, config, "enlarge", use_vir=True, is_vis=True, n=num_thread)
     # run_once(benchmark, b_pth, config, "shrink", use_vir=True, is_vis=True, n=num_thread)
     # run_once(benchmark, b_pth, config, "enlarge10000", use_vir=True, is_vis=True, n=num_thread)
     # run_once(benchmark, b_pth, config, "shrink1", use_vir=True, is_vis=True, n=num_thread)
-    run_once(benchmark, b_pth, config, "origin", use_vir=False, is_vis=True, n=num_thread)

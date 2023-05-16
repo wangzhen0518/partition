@@ -72,8 +72,6 @@ def eval_par_HPWL(par_list: list, hg):
         # 寻找 max xi, min xi, max yi, min yi
         xmax = ymax = 0
         xmin = ymin = 1e10
-        xmax_id = xmin_id = ymax_id = ymin_id = 0
-        found = True  # 标记是否在实际点中找到了最值位置
         is_cut = False
         real_node_list = [n for n in node_list if n < num_nodes]
         if len(real_node_list) < len(node_list):  # 这条超边连有添加的虚拟点，不考虑
@@ -84,16 +82,12 @@ def eval_par_HPWL(par_list: list, hg):
                 is_cut = True
             if pos_x[n] > xmax:
                 xmax = pos_x[n]
-                xmax_id = n
             if pos_x[n] < xmin:
                 xmin = pos_x[n]
-                xmin_id = n
             if pos_y[n] > ymax:
                 ymax = pos_y[n]
-                ymax_id = n
             if pos_y[n] < ymin:
                 ymin = pos_y[n]
-                ymin_id = n
         if not is_cut:  # 不被切割的边的 hpwl
             if k not in hpwl_noncut:
                 hpwl_noncut[k] = []

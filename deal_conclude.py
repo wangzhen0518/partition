@@ -77,7 +77,7 @@ def plot_cmp(cmp_lst, idx_list, type, metrics):
         weight="bold",
     )
     print(idx_r)
-    fig.savefig(f"res/ispd2005/conclude.shrink.{type}.{metrics}.png", dpi=300)
+    fig.savefig(f"res/ispd2005/conclude.hpwl.{type}.{metrics}.png", dpi=300)
     plt.close(fig)
     # print(idx_list)
 
@@ -194,9 +194,73 @@ def conclude_all():
         plt.close(fig3)
 
 
+def conclude_hpwl():
+    base_file = os.path.join("res", "ispd2005", "conclude.hg.origin.json")
+    with open(base_file, "r", encoding="utf-8") as f:
+        baseline = jstyleson.load(f)
+    mw_file = os.path.join("res", "ispd2005", "conclude.hg.hpwl.json")
+    with open(mw_file, "r", encoding="utf-8") as f:
+        mw = jstyleson.load(f)
+
+    benchmarks = list(mw.keys())
+    os.system("mkdir -p res/ispd2005/conclude")
+    value_list, hpwl_list, ncut_list = [], [], []
+    for bm in benchmarks:
+        value_list.append((mw[bm]["value"] - baseline[bm]["value"]) / baseline[bm]["value"])
+        hpwl_list.append(-(mw[bm]["hpwl"] - baseline[bm]["hpwl"]) / baseline[bm]["hpwl"])
+        ncut_list.append((mw[bm]["ncut"] - baseline[bm]["ncut"]) / baseline[bm]["ncut"])
+
+    res_pic_name = os.path.join("res", "ispd2005", "conclude", f"conclude.hpwl")
+    fig, ax = plt.subplots(figsize=(8,11))
+    # plot value
+    ax.set_xlabel("trans")
+    ax.set_ylabel(
+        r"$\frac{value_{vir}-value_{hg}}{value_{hg}}$",
+        fontdict={"size": 16},
+        rotation=0,
+        loc="top",
+        labelpad=-90,
+    )
+    ax.axhline(y=0, c="r", ls="-")
+    ax.scatter(benchmarks, value_list, c="b")
+    plt.xticks(rotation=-90)
+    fig.savefig(res_pic_name + ".value.png", dpi=300)
+    plt.close(fig)
+
+    # plot hpwl
+    fig2, ax2 = plt.subplots(figsize=(8,11))
+    ax2.set_ylabel(
+        r"$-\frac{hpwl_{vir}-hpwl_{hg}}{hpwl_{hg}}$",
+        fontdict={"size": 16},
+        rotation=0,
+        loc="top",
+        labelpad=-90,
+    )
+    ax2.axhline(y=0, c="r", ls="-")
+    ax2.scatter(benchmarks, hpwl_list, c="r")
+    plt.xticks(rotation=-90)
+    fig2.savefig(res_pic_name + ".hpwl.png", dpi=300)
+    plt.close(fig2)
+
+    # plot ncut
+    fig3, ax3 = plt.subplots(figsize=(8,11))
+    ax3.set_ylabel(
+        r"$\frac{ncut_{vir}-ncut_{hg}}{ncut_{hg}}$",
+        fontdict={"size": 16},
+        rotation=0,
+        loc="top",
+        labelpad=-90,
+    )
+    ax3.axhline(y=0, c="r", ls="-")
+    ax3.scatter(benchmarks, ncut_list, c="c")
+    plt.xticks(rotation=-90)
+    fig3.savefig(res_pic_name + ".ncut.png", dpi=300)
+    plt.close(fig3)
+
+
 if __name__ == "__main__":
     # type = "k"  # 'k' or 'g', k 表示按照切分数量优先, g 表示按照图有限
-    # vir_conclude_file = "res/ispd2005/conclude.vir.shrink.json"
+    # vir_conclude_file = "res/ispd2005/conclude.hg.hpwl.json"
     # hg_conclude_file = "res/ispd2005/conclude.hg.origin.json"
     # config_file = os.path.join("par_config", "ispd2005", "config.json")
     # with open(vir_conclude_file, "r", encoding="utf-8") as f:
@@ -209,12 +273,13 @@ if __name__ == "__main__":
     # plot_cmp(val_cmp_list, idx_list, type, "value")
     # plot_cmp(hpwl_cmp_list, idx_list, type, "hpwl")
     # conclude_table(config, hg_conclude, "res/ispd2005/conclude.hg.origin")
-    # conclude_table(config, vir_conclude, "res/ispd2005/conclude.vir.shrink")
+    # conclude_table(config, vir_conclude, "res/ispd2005/conclude.hg.hpwl")
 
-    # config_file = os.path.join("par_config", "isdp2005", "config.json")
+    # config_file = os.path.join("par_config", "ispd2005", "config.json")
     # with open(config_file, encoding="utf-8") as f:
     #     config = jstyleson.load(f)
     # plot_improve(config["design"])
     # test_HPWL()
 
-    conclude_all()
+    # conclude_all()
+    conclude_hpwl()
