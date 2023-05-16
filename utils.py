@@ -136,7 +136,7 @@ def plot_pl_with_par(par: dict, vis_file):
         s=0.5,
         c=v_part,
         edgecolors="none",
-        cmap=plt.cm.gist_ncar,
+        cmap=plt.cm.jet,
     )
     fig.savefig(vis_file, dpi=1000)
     plt.close(fig)
