@@ -2,15 +2,15 @@
   "design": [
     // "bigblue4",
     // "bigblue3",
-    "bigblue2",
+    // "bigblue2",
     "bigblue1",
-    "adaptec4",
-    "adaptec3",
-    "adaptec2",
-    "adaptec1"
+    // "adaptec4",
+    // "adaptec3",
+    // "adaptec2",
+    // "adaptec1"
   ],
   "KaHyPar": {
-    "k": [2, 50, 500, 1024],
+    "k": [500 ],
     "UBfactor": [0.03]
   },
   "shmetis": {

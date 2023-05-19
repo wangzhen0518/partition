@@ -6,7 +6,7 @@ import numpy as np
 from multiprocessing import Pool
 
 from hypergraph import DiHypergraph
-from manager import generate_par, eval_par, eval_par_HPWL
+from manager import generate_par, eval_par, eval_par_HPWL, eval_par_weight
 from utils import plot_pl_with_par, del_ext_name, analysis_stats, load_par
 from dreamplace.Params import Params
 from dreamplace.PlaceDB import PlaceDB
@@ -67,6 +67,7 @@ def run_partition(hg: DiHypergraph, k, ubf, result_pth, use_vir=True, is_vis=Fal
     par_dict = generate_par(par_list, hg.pl)
     val, val_list = eval_par(par_dict)
     hpwl, hpwl_list = eval_par_HPWL(par_list, hg)
+    weight, weight_list = eval_par_weight(par_list, hg)
     # 生成可视化图片
     if is_vis:
         vis_file = par_file + f".{pl_ext}.png"
@@ -77,6 +78,7 @@ def run_partition(hg: DiHypergraph, k, ubf, result_pth, use_vir=True, is_vis=Fal
         "value_list": val_list,
         "hpwl": hpwl,
         "ncut": len(hpwl_list),
+        "weight": weight,
         # "hpwl_list": hpwl_list,
         "run_time": run_time,
     }

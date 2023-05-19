@@ -115,10 +115,10 @@ if __name__ == "__main__":
     res_pic = "res/ispd2005/adaptec1/random_add/conclude.png"
     subprocess.getstatusoutput(f"mkdir -p {res_path}")
     if not os.path.exists(conclude_file):
-        hg_file = "res/ispd2005/adaptec1/adaptec1.hg.dire"
+        g_file = "res/ispd2005/adaptec1/adaptec1.hg.dire"
         pl_file = "res/ispd2005/adaptec1/adaptec1.gp.pl"
         hg = DiHypergraph()
-        hg.read_from_file(hg_file)
+        hg.read_from_file(g_file)
         hg.read_pl(pl_file)
         # eta = np.linspace(0, 1, 11)
         eta = [0.6, 0.7, 0.8, 0.9, 1.0]

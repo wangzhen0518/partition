@@ -4,6 +4,7 @@ import os
 
 
 def rebuild():
+    tag = "enlarge10000"
     design_list = [
         "adaptec1",
         "adaptec2",
@@ -15,12 +16,14 @@ def rebuild():
     b_pth = "./res/ispd2005"
     for design in design_list:
         print(design)
-        vir_edge_file = os.path.join(b_pth, design, "vir_edge.bin")
+        vir_edge_file = os.path.join(b_pth, design, "base", "vir_edge.base.bin")
         with open(vir_edge_file, "rb") as f:
             vir_edge = pk.load(f)
         for i, (w, h, t) in enumerate(vir_edge):
-            vir_edge[i] = [int(1), h, t]
-        vir_edge_file = os.path.join(b_pth, design, "vir_edge.shrink1.bin")
+            vir_edge[i] = [int(w * 10000), h, t]
+        vir_path = os.path.join(b_pth, design, tag)
+        os.system(f"mkdir -p {vir_path}")
+        vir_edge_file = os.path.join(vir_path, f"vir_edge.{tag}.bin")
         with open(vir_edge_file, "wb") as f:
             pk.dump(vir_edge, f)
 

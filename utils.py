@@ -25,6 +25,18 @@ def add_connected_subgraph(hg: nx.Graph, node_list, w=1):
     return hg
 
 
+def sort_by(arr1, arr2, reverse=False):
+    """
+    依据arr1对arr2排序
+    reverse=True表示升序，反之降序
+    """
+    arr1, arr2 = np.array(arr1), np.array(arr2)
+    idx = np.argsort(arr1)
+    if reverse:
+        idx = idx[::-1]
+    return arr1[idx], arr2[idx]
+
+
 def generate_hg(gfile):
     """
     根据 gfile 生成 hypergraph
@@ -192,14 +204,14 @@ def analysis_stats(res: str):
     res = res[res.find("Partition time") :]
     res = res[: res.find("\n")]
     _, run_time = res.split("=")
-    run_time = float(run_time.replace("s",''))
+    run_time = float(run_time.replace("s", ""))
     return run_time
 
 
 def draw_density(hg):
-    '''
+    """
     绘制超图加边前后每个点权重比较
-    '''
+    """
     node_list = np.array(range(hg.num_node))
     weight = np.zeros(shape=(hg.num_node, 2))  # 第一位是算上虚拟边的总权重，第二位不算
     for i, (tail_list, head_list) in enumerate(hg.n2e):

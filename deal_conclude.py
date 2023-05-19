@@ -136,14 +136,14 @@ def conclude_all():
     transforms = ["shrink1", "shrink", "base", "enlarge", "enlarge10000"]
     conclude_info = {}
     for trans in transforms:
-        conclue_file = os.path.join("res", "ispd2005", f"conclude.vir.{trans}.json")
+        conclue_file = os.path.join("res", "ispd2005", f"conclude.delete_add.{trans}.json")
         with open(conclue_file, "r", encoding="utf8") as f:
             conclude_info[trans] = jstyleson.load(f)
     benchmarks = [k for k in conclude_info[transforms[0]].keys() if "500" in k]  # 如果全画，图太多了，只画k=500的
 
     os.system("mkdir -p res/ispd2005/conclude")
     for bm in benchmarks:
-        res_pic_name = os.path.join("res", "ispd2005", "conclude", f"conclude.{bm}")
+        res_pic_name = os.path.join("res", "ispd2005", "conclude", f"conclude.delete_add.{bm}")
         value_list, hpwl_list, ncut_list = [], [], []
         for trans in transforms:
             value_list.append(

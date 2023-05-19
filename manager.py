@@ -60,7 +60,7 @@ def eval_par(par_dict: dict):
 
 def eval_par_HPWL(par_list: list, hg):
     """
-    越小越好
+    越大越好
     """
     pos_x, pos_y = hg.pl
     hpwl_noncut = dict()  # 不被切割的边的hpwl
@@ -106,6 +106,35 @@ def eval_par_HPWL(par_list: list, hg):
     # return total_hpwl_noncut, hpwl_k_noncut
     return totol_hpwl_cut, hpwl_cut
 
+def eval_par_weight(par_list,hg):
+    """
+    越小越好
+    """
+    pos_x, pos_y = hg.pl
+    weight_noncut = dict()  # 不被切割的边的hpwl
+    num_nodes = len(pos_x)
+    weight_cut = []  # 被切割边的hpwl
+    for eid,( tail_list, head_list )in enumerate(hg.e2n):
+        node_list = tail_list + head_list
+        is_cut = False
+        real_node_list = [n for n in node_list if n < num_nodes]
+        if len(real_node_list) < len(node_list):  # 这条超边连有添加的虚拟点，不考虑
+            continue
+        k = par_list[real_node_list[0]]
+        for n in real_node_list:
+            if par_list[n] != k:
+                is_cut = True
+        if not is_cut:  # 不被切割的边的 hpwl
+            if k not in weight_noncut:
+                weight_noncut[k] = []
+            weight_noncut[k].append(hg.edge_weight[eid])
+        else:  # 被切割边的 hpwl
+            weight_cut.append(hg.edge_weight[eid])
+    weight_k_noncut = [np.average(hpwl_k) for hpwl_k in weight_noncut.values()]
+    total_hpwl_noncut = np.average(weight_k_noncut)
+    totol_weight_cut = np.average(weight_cut)
+    # return total_hpwl_noncut, hpwl_k_noncut
+    return totol_weight_cut, weight_cut
 
 def num_par(par: dict):
     """
