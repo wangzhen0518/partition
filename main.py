@@ -116,7 +116,7 @@ def run_once(benchmark, b_pth, config, m_type, use_vir, is_vis, n=8):
             # stat_dict[stat_key] = stat_info
 
             task_lst.append(
-                pool.apply_async(run_partition, args=(hg, k, ubf, result_pth, use_vir, is_vis, True))
+                pool.apply_async(run_partition, args=(hg, k, ubf, result_pth, use_vir, is_vis, False))
             )
     pool.close()
     pool.join()

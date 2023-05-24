@@ -260,6 +260,7 @@ class DiHypergraph(Hypergraph):
         self.design_pth = os.path.dirname(hg_file)
         self.load_hypergraph(hg_file)
         self.generate_n2e()
+        self.real_num_node = len(self.pl[0])
         self.cal_hpwl()
 
     def read_from_db(self, placedb: PlaceDB):
