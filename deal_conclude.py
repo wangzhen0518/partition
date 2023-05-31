@@ -157,7 +157,7 @@ def conclude_all():
         # plot value
         ax.set_xlabel("trans")
         ax.set_ylabel(
-            r"$\frac{value_{vir}-value_{hg}}{value_{hg}}$",
+            r"$\frac{value_{mod}-value_{ori}}{value_{ori}}$",
             fontdict={"size": 16},
             rotation=0,
             loc="top",
@@ -170,7 +170,7 @@ def conclude_all():
         # plot hpwl
         fig2, ax2 = plt.subplots()
         ax2.set_ylabel(
-            r"$-\frac{hpwl_{vir}-hpwl_{hg}}{hpwl_{hg}}$",
+            r"$-\frac{hpwl_{mod}-hpwl_{ori}}{hpwl_{ori}}$",
             fontdict={"size": 16},
             rotation=0,
             loc="top",
@@ -183,7 +183,7 @@ def conclude_all():
         # plot ncut
         fig3, ax3 = plt.subplots()
         ax3.set_ylabel(
-            r"$\frac{ncut_{vir}-ncut_{hg}}{ncut_{hg}}$",
+            r"$\frac{ncut_{mod}-ncut_{ori}}{ncut_{ori}}$",
             fontdict={"size": 16},
             rotation=0,
             loc="top",
@@ -215,7 +215,7 @@ def conclude_hpwl():
     # plot value
     ax.set_xlabel("trans")
     ax.set_ylabel(
-        r"$\frac{value_{vir}-value_{hg}}{value_{hg}}$",
+        r"$\frac{value_{mod}-value_{ori}}{value_{ori}}$",
         fontdict={"size": 16},
         rotation=0,
         loc="top",
@@ -224,13 +224,13 @@ def conclude_hpwl():
     ax.axhline(y=0, c="r", ls="-")
     ax.scatter(benchmarks, value_list, c="b")
     plt.xticks(rotation=-90)
-    fig.savefig(res_pic_name + ".value.png", dpi=300)
+    fig.savefig(res_pic_name + ".value.pdf", dpi=300)
     plt.close(fig)
 
     # plot hpwl
     fig2, ax2 = plt.subplots(figsize=(8,11))
     ax2.set_ylabel(
-        r"$-\frac{hpwl_{vir}-hpwl_{hg}}{hpwl_{hg}}$",
+        r"$-\frac{hpwl_{mod}-hpwl_{ori}}{hpwl_{ori}}$",
         fontdict={"size": 16},
         rotation=0,
         loc="top",
@@ -239,13 +239,13 @@ def conclude_hpwl():
     ax2.axhline(y=0, c="r", ls="-")
     ax2.scatter(benchmarks, hpwl_list, c="r")
     plt.xticks(rotation=-90)
-    fig2.savefig(res_pic_name + ".hpwl.png", dpi=300)
+    fig2.savefig(res_pic_name + ".hpwl.pdf", dpi=300)
     plt.close(fig2)
 
     # plot ncut
     fig3, ax3 = plt.subplots(figsize=(8,11))
     ax3.set_ylabel(
-        r"$\frac{ncut_{vir}-ncut_{hg}}{ncut_{hg}}$",
+        r"$\frac{ncut_{mod}-ncut_{ori}}{ncut_{ori}}$",
         fontdict={"size": 16},
         rotation=0,
         loc="top",
@@ -254,7 +254,7 @@ def conclude_hpwl():
     ax3.axhline(y=0, c="r", ls="-")
     ax3.scatter(benchmarks, ncut_list, c="c")
     plt.xticks(rotation=-90)
-    fig3.savefig(res_pic_name + ".ncut.png", dpi=300)
+    fig3.savefig(res_pic_name + ".ncut.pdf", dpi=300)
     plt.close(fig3)
 
 

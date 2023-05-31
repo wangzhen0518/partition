@@ -71,7 +71,7 @@ def run_partition(hg: DiHypergraph, k, ubf, result_pth, use_vir=True, is_vis=Fal
     hpwl, hpwl_list = eval_par_HPWL(par_list, hg)
     # 生成可视化图片
     if is_vis:
-        vis_file = par_file + f".{pl_ext}.png"
+        vis_file = par_file + f".{pl_ext}.pdf"
         plot_pl_with_par(par_dict, vis_file)
     stat_key = hg.design + f".{k}"
     return stat_key, {
@@ -94,7 +94,7 @@ def run_once(benchmark, b_pth, config, m_type, use_vir, is_vis, n=8):
     for design in design_lst:
         # hg = load_design(benchmark, design, b_pth, use_vir)
         # hg_lst.append(hg)
-        task_lst.append(pool.apply_async(load_design, args=(benchmark, design, b_pth, m_type, use_vir, True)))
+        task_lst.append(pool.apply_async(load_design, args=(benchmark, design, b_pth, m_type, use_vir, False)))
     pool.close()
     pool.join()
     for task in task_lst:
