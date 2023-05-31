@@ -70,6 +70,9 @@ if __name__ == "__main__":
     for h, w in hw:
         hpwl.append(h)
         weight.append(w)
-    plt.scatter(hpwl, weight, s=1)
-    plt.savefig("res/ispd2005/conclude/hpwl_weight.png")
-    plt.close()
+    fig, ax = plt.subplots()
+    ax.scatter(hpwl, weight, s=1)
+    ax.set_xlabel("hpwl")
+    ax.set_ylabel("weight")
+    fig.savefig("res/ispd2005/conclude/hpwl_weight.png", dpi=300)
+    plt.close(fig)
