@@ -26,11 +26,11 @@ def load_design(benchmark, design, b_pth, m_type, use_vir=True, new_hg=False):
     else:
         # 无论是否使用 virtual edge, 都需要确保 .hg 文件存在
         hg_ori_file = os.path.join(design_pth, design + ".hg" + ".dire")
-        if not os.path.exists(hg_ori_file):
-            pl_config = os.path.join("pl_config", benchmark, design + ".json")
-            hg.build_from_config(pl_config, hg_ori_file)
-        else:
-            hg.read_from_file(hg_ori_file)
+        # if not os.path.exists(hg_ori_file):
+        pl_config = os.path.join("pl_config", benchmark, design + ".json")
+        hg.build_from_config(pl_config, hg_ori_file)
+        # else:
+        #     hg.read_from_file(hg_ori_file)
         # 如果使用 virtual edge, 并且 .vir 存在, 那么上一个 if 已经读过文件
         # 所以此处为使用 virtual edge, 但是 .vir 文件不存在, 应生成 .vir 文件
         if use_vir:
@@ -69,7 +69,7 @@ def run_partition(hg: DiHypergraph, k, ubf, result_pth, use_vir=True, is_vis=Fal
     hpwl, hpwl_list = eval_par_HPWL(par_list, hg)
     # 生成可视化图片
     if is_vis:
-        vis_file = par_file + f".{pl_ext}.png"
+        vis_file = par_file + f".{pl_ext}.pdf"
         plot_pl_with_par(par_dict, vis_file)
     stat_key = hg.design + f".{k}"
     return stat_key, {
@@ -92,7 +92,7 @@ def run_once(benchmark, b_pth, config, m_type, use_vir, is_vis, n=8):
     for design in design_lst:
         # hg = load_design(benchmark, design, b_pth, use_vir)
         # hg_lst.append(hg)
-        task_lst.append(pool.apply_async(load_design, args=(benchmark, design, b_pth, m_type, use_vir, True)))
+        task_lst.append(pool.apply_async(load_design, args=(benchmark, design, b_pth, m_type, use_vir, False)))
     pool.close()
     pool.join()
     for task in task_lst:
@@ -112,7 +112,9 @@ def run_once(benchmark, b_pth, config, m_type, use_vir, is_vis, n=8):
             # stat_key, stat_info = run_partition(hg, k, ubf, method_pth, use_vir, is_vis)
             # stat_dict[stat_key] = stat_info
 
-            task_lst.append(pool.apply_async(run_partition, args=(hg, k, ubf, result_pth, use_vir, is_vis)))
+            task_lst.append(
+                pool.apply_async(run_partition, args=(hg, k, ubf, result_pth, use_vir, is_vis, False))
+            )
     pool.close()
     pool.join()
     for task in task_lst:

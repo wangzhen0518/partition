@@ -138,6 +138,7 @@ def plot_pl_with_par(par: dict, vis_file):
         edgecolors="none",
         cmap=plt.cm.jet,
     )
+    ax.set_axis_off()
     fig.savefig(vis_file, dpi=1000)
     plt.close(fig)
 
